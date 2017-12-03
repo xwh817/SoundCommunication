@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	tools:context="xwh.sound.MainActivity">
+
+	<EditText
+		android:id="@+id/input_hz"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:text="名字gtwifi^密码gtznwifi"/>
+
+	<!--名字gtwifi^密码gtznwifi-->
+
+	<Button
+		android:id="@+id/bt_play"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:text="Play"/>
+
+	<Button
+		android:id="@+id/bt_record"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="12dp"
+		android:text="Record"/>
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal">
+		<TextView
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="当前频率："/>
+		<TextView
+			android:id="@+id/text_current_freq"
+			android:layout_width="100dp"
+			android:layout_height="wrap_content"
+			android:text="HZ"/>
+	</LinearLayout>
+
+	<ScrollView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content">
+		<TextView
+			android:id="@+id/record_result"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:padding="12dp"
+			android:text=""/>
+	</ScrollView>
+
+
+</LinearLayout>
