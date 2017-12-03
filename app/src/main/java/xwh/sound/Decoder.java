@@ -6,6 +6,7 @@ import android.util.Base64;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -31,6 +32,10 @@ public class Decoder {
     private long lastStartTime;
     private static final int TIMEOUT = 10000;
 
+    private static final int COUNT_STEP_SIZE = 10;
+
+    private LinkedList<Integer> listBufferFreq = new LinkedList<>();
+
     public Decoder(Handler handler) {
         this.mHandler = handler;
         codeIndexs = new ArrayList<>();
@@ -40,11 +45,12 @@ public class Decoder {
     /**
      * 对一个录音Buffer进行频率统计
      */
-    public int countFreq(short[] datas) {
-        int itemStep = datas.length / 10;
+    public int countFreq(short[] datas, int sampleStep) {
+        int itemStep = datas.length / COUNT_STEP_SIZE;
 
         int waveState = -1;
         int stepCount = 0;
+        int bufferFreqCount = 0;
         int currentFreq = 0;
         for(short sample : datas) {
 
@@ -70,8 +76,10 @@ public class Decoder {
              * 并不是每个buffer取一次频率，而是在一段buffer中获取小段，每个小段进行解码
              */
             stepCount++;
-            if (stepCount >= itemStep && waveCount > 10) {
-                currentFreq = waveCount * 50;	// 这里50是根据每小段占比得出的
+            if (stepCount >= itemStep) {
+                //waveCount = waveCount / 2;  // 一上一下表示一个波形，所以要除以2
+                bufferFreqCount += waveCount;
+                currentFreq = waveCount * COUNT_STEP_SIZE * sampleStep / 2;	// 这里根据每小段得出频率（一秒内波形次数）
 
                 //Log.i("Record", "waveCount:" + waveCount + ", fre:" + fre + ", decode:" + CodeBook.decode(fre));
 
@@ -85,9 +93,25 @@ public class Decoder {
 
 
         if (mHandler != null) {
+
+            /*if (listBufferFreq.size() >= sampleStep) {
+                listBufferFreq.remove(0);
+            }
+            listBufferFreq.add(bufferFreqCount);
+
+            int allCount = 0;
+            for(int bCount : listBufferFreq) {  // 累计最近1s采样得到频率
+                allCount += bCount;
+            }
+
+            int freq = allCount / 2;  // 一上一下表示一个波形，所以要除以2*/
+
+            //int freq = currentFreq;
+            int freq = bufferFreqCount * sampleStep / 2;  // 一上一下表示一个波形，所以要除以2
+
             Message msg = mHandler.obtainMessage();
             msg.what = MainActivity.MSG_CURRENT_FREQ;
-            msg.obj = currentFreq + "";
+            msg.obj = freq + "";
             mHandler.sendMessage(msg);
         }
 
@@ -123,7 +147,7 @@ public class Decoder {
             } else if (startDecode) {
                 countStartCode = 0;
 
-                if (System.currentTimeMillis() - lastStartTime > 10000) {
+                if (System.currentTimeMillis() - lastStartTime > TIMEOUT) {
                     startDecode = false;    // 可能上一次结束码丢失，超时
                     return;
                 }

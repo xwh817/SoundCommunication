@@ -19,7 +19,9 @@ public class Record {
 
 	public static final String TAG = "Record";
 
-	private static final int sampleRate = 44100;
+	private static final int DEFAULT_SAMPLE_RATE = 44100;
+	private static final int SAMPLE_STEP = 10;	// 一秒之内多少次Buffer采样
+
 	private AudioRecord mAudioRecord;
 
 	private int readSize = 0;
@@ -46,13 +48,13 @@ public class Record {
 
 	public void start() {
 
-		mBufferSize = sampleRate / 10  * 2;  // 16Bit，两个字节一个采样值。 mBufferSize是每次获取的录音数据量，这里取采样率的一部分，也就是0.1s的采样数据
-		int minBufferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+		mBufferSize = DEFAULT_SAMPLE_RATE / SAMPLE_STEP  * 2;  // 16Bit，两个字节一个采样值。 mBufferSize是每次获取的录音数据量，这里取采样率的一部分，也就是0.1s的采样数据
+		int minBufferSize = AudioRecord.getMinBufferSize(DEFAULT_SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
 		if (mBufferSize > minBufferSize) {
 
 			buffer = new byte[mBufferSize];
 
-			mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mBufferSize);
+			mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, DEFAULT_SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mBufferSize);
 
 			mAudioRecord.startRecording();
 
@@ -76,7 +78,7 @@ public class Record {
 
 					}
 
-					mDecoder.countFreq(waveDatas);
+					mDecoder.countFreq(waveDatas, SAMPLE_STEP);
 
 				}
 
