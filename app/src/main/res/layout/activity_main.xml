@@ -11,22 +11,27 @@
 		android:id="@+id/input_hz"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:text="名字gtwifi^密码gtznwifi"/>
+		android:text=""/>
 
-	<!--名字gtwifi^密码gtznwifi-->
+	<Button
+		android:id="@+id/bt_send"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:text="@string/send"/>
 
 	<Button
 		android:id="@+id/bt_play"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:text="Play"/>
+		android:layout_marginTop="12dp"
+		android:text="@string/play"/>
 
 	<Button
 		android:id="@+id/bt_record"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:layout_marginTop="12dp"
-		android:text="Record"/>
+		android:text="@string/record"/>
 
 	<LinearLayout
 		android:layout_width="match_parent"

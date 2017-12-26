@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
 		record = new Record(decoder);
 
-		this.findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
+		this.findViewById(R.id.bt_send).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 
@@ -122,6 +123,21 @@ public class MainActivity extends AppCompatActivity {
 
 			}
 		});
+
+		findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				try {
+					int hz = Integer.parseInt(inputHz.getText().toString());
+					PCMPlayer.getInstance().start(hz, 2000);
+
+					PCMPlayer.getInstance().stop();
+				} catch (NumberFormatException e) {
+					Toast.makeText(MainActivity.this, "Please input frequency", Toast.LENGTH_SHORT).show();
+				}
+			}
+		});
+
 	}
 
 	private void testBase64() {

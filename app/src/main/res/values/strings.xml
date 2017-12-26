@@ -1,3 +1,7 @@
 <resources>
 	<string name="app_name">SoundCommunication</string>
+
+	<string name="play">Play</string>
+	<string name="send">Send</string>
+	<string name="record">Record</string>
 </resources>
