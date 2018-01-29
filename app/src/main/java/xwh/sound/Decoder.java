@@ -81,8 +81,6 @@ public class Decoder {
                 bufferFreqCount += waveCount;
                 currentFreq = waveCount * COUNT_STEP_SIZE * sampleStep / 2;	// 这里根据每小段得出频率（一秒内波形次数）
 
-                //Log.i("Record", "waveCount:" + waveCount + ", fre:" + fre + ", decode:" + CodeBook.decode(fre));
-
                 decodeFre(currentFreq);
 
                 stepCount = 0;
@@ -113,6 +111,10 @@ public class Decoder {
             msg.what = MainActivity.MSG_CURRENT_FREQ;
             msg.obj = freq + "";
             mHandler.sendMessage(msg);
+
+
+            Log.i("Record", "fre:" + freq);
+
         }
 
         return currentFreq;

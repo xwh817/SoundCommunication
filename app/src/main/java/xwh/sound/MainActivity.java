@@ -20,7 +20,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
 	public static final int MSG_RESULT = 1;
-	public static final int MSG_CURRENT_FREQ= 2;
+	public static final int MSG_CURRENT_FREQ = 2;
 
 	private EditText inputHz;
 	private int[] cc = {0, 262, 294, 330, 349, 392, 440, 494};
@@ -46,12 +46,10 @@ public class MainActivity extends AppCompatActivity {
 			public void handleMessage(Message msg) {
 				String re = (String) msg.obj;
 				if (msg.what == MSG_RESULT) {
-					recordResult.append(re+"\n");
+					recordResult.append(re + "\n");
 				} else if (msg.what == MSG_CURRENT_FREQ) {
-					currentFreq.setText(re+"HZ");
+					currentFreq.setText(re + "HZ");
 				}
-
-
 			}
 		};
 
@@ -63,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
 			@Override
 			public void onClick(View v) {
 
-				if(PCMPlayer.getInstance().isPlaying()) {
+				if (PCMPlayer.getInstance().isPlaying()) {
 					return;
 				}
 
@@ -127,14 +125,22 @@ public class MainActivity extends AppCompatActivity {
 		findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				try {
-					int hz = Integer.parseInt(inputHz.getText().toString());
-					PCMPlayer.getInstance().start(hz, 2000);
+				// 播放声音在主线程会阻塞界面刷新，要放在子线程中
+				new Thread(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							int hz = Integer.parseInt(inputHz.getText().toString());
+							PCMPlayer.getInstance().start(hz, 2000);
 
-					PCMPlayer.getInstance().stop();
-				} catch (NumberFormatException e) {
-					Toast.makeText(MainActivity.this, "Please input frequency", Toast.LENGTH_SHORT).show();
-				}
+							PCMPlayer.getInstance().stop();
+						} catch (NumberFormatException e) {
+							Toast.makeText(MainActivity.this, "Please input frequency", Toast.LENGTH_SHORT).show();
+						}
+
+					}
+				}).start();
+
 			}
 		});
 
@@ -145,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 		String str = Base64.encodeToString(test.getBytes(), Base64.NO_WRAP | Base64.NO_PADDING);
 		List<Integer> codes = Encoder.convertTextToCodes(str);
 
-		Log.d("Encode", "encodeArray:"+codes);
+		Log.d("Encode", "encodeArray:" + codes);
 		PCMPlayer.getInstance().start(codes, 50);
 	}
 
@@ -153,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
 		List<Integer> codes = new ArrayList<>();
 		codes.add(CodeBook.START_INDEX);
 		codes.add(CodeBook.START_INDEX);
-		for(int i=0; i<CodeBook.CODE_BOOK_LENGTH_CONTENT; i++) {
+		for (int i = 0; i < CodeBook.CODE_BOOK_LENGTH_CONTENT; i++) {
 			codes.add(i);
 		}
 		codes.add(CodeBook.DUPLICATE_INDEX_1);
@@ -164,10 +170,10 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	private void testPu() {
-		int[] pu = {1,1,5,5,6,6,5,0,4,4,3,3,2,2,1};
+		int[] pu = {1, 1, 5, 5, 6, 6, 5, 0, 4, 4, 3, 3, 2, 2, 1};
 		int step = 200;
 
-		for(int p:pu) {
+		for (int p : pu) {
 			PCMPlayer.getInstance().start(cc[p], step);
 			PCMPlayer.getInstance().start(cc[0], step);
 		}

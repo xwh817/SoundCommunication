@@ -3,9 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/SoundCommunication.iml" filepath="$PROJECT_DIR$/SoundCommunication.iml" />
-      <module fileurl="file://E:\Android\GitSource\SoundCommunication\SoundCommunication.iml" filepath="E:\Android\GitSource\SoundCommunication\SoundCommunication.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://E:\Android\GitSource\SoundCommunication\app\app.iml" filepath="E:\Android\GitSource\SoundCommunication\app\app.iml" />
     </modules>
   </component>
 </project>
