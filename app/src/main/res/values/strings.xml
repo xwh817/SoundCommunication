@@ -1,7 +1,8 @@
 <resources>
 	<string name="app_name">SoundCommunication</string>
 
-	<string name="play">Play</string>
-	<string name="send">Send</string>
-	<string name="record">Record</string>
+	<string name="play">播放指定频率的声音</string>
+	<string name="send">通过声音发送数据</string>
+	<string name="record">录音</string>
+	<string name="recording">录音中……</string>
 </resources>

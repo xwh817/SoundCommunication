@@ -12,7 +12,7 @@ public class Record {
 
 	public static final String TAG = "Record";
 
-	private static final int DEFAULT_SAMPLE_RATE = 44100;
+	public static final int DEFAULT_SAMPLE_RATE = 44100;
 	private static final int SAMPLE_STEP = 10;	// 一秒之内多少次Buffer采样
 
 	private AudioRecord mAudioRecord;
@@ -23,7 +23,6 @@ public class Record {
 
 
 	private Decoder mDecoder;
-
 
 	public Record(Decoder decoder) {
 		this.mDecoder = decoder;

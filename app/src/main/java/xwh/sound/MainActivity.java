@@ -107,9 +107,9 @@ public class MainActivity extends AppCompatActivity {
 			public void onClick(View v) {
 				if (record.isRecording()) {
 					record.stopRecord();
-					btRecord.setText("Record");
+					btRecord.setText(R.string.record);
 				} else {
-					btRecord.setText("Recording");
+					btRecord.setText(R.string.recording);
 					new Thread(new Runnable() {
 						@Override
 						public void run() {

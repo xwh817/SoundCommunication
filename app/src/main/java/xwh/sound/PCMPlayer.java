@@ -7,7 +7,7 @@ import android.media.AudioTrack;
 import java.util.List;
 
 /**
- * Created by Administrator on 2017/11/20.
+ * Created by xwh on 2017/11/20.
  */
 
 public class PCMPlayer {

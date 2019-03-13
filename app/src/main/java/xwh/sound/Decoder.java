@@ -6,11 +6,12 @@ import android.util.Base64;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
+import xwh.sound.utils.FFT;
+
 /**
- * Created by Administrator on 2017/11/28.
+ * Created by xwh on 2017/11/28.
  */
 
 public class Decoder {
@@ -34,18 +35,31 @@ public class Decoder {
 
     private static final int COUNT_STEP_SIZE = 10;
 
-    private LinkedList<Integer> listBufferFreq = new LinkedList<>();
+    private FFT fft = new FFT();
 
     public Decoder(Handler handler) {
         this.mHandler = handler;
         codeIndexs = new ArrayList<>();
     }
 
+    public void countFreq(short[] datas, int sampleStep) {
+        int currentFreq = 0;
+        for (int i=0; i<sampleStep; i++) {
+            currentFreq = fft.getFrequency(datas, Record.DEFAULT_SAMPLE_RATE, i * datas.length / sampleStep, 256);
+            decodeFre(currentFreq);
+        }
+
+        // 只显示一次
+        Message msg = mHandler.obtainMessage();
+        msg.what = MainActivity.MSG_CURRENT_FREQ;
+        msg.obj = currentFreq + "";
+        mHandler.sendMessage(msg);
+    }
 
     /**
      * 对一个录音Buffer进行频率统计
      */
-    public int countFreq(short[] datas, int sampleStep) {
+    public int countFreq1(short[] datas, int sampleStep) {
         int itemStep = datas.length / COUNT_STEP_SIZE;
 
         int waveState = -1;

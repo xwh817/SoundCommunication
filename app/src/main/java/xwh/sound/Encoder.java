@@ -7,13 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by Administrator on 2017/11/28.
+ * Created by xwh on 2017/11/28.
  */
 
 public class Encoder {
-
 	public static final String TAG = "Encoder";
-
 
 	public static List<Integer> convertTextToCodes(String text) {
 		List<Integer> mCodes = new ArrayList<>();
