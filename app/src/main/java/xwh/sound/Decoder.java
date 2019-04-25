@@ -43,11 +43,14 @@ public class Decoder {
     }
 
     public void countFreq(short[] datas, int sampleStep) {
-        int currentFreq = 0;
+       /* int currentFreq = 0;
         for (int i=0; i<sampleStep; i++) {
             currentFreq = fft.getFrequency(datas, Record.DEFAULT_SAMPLE_RATE, i * datas.length / sampleStep, 256);
             decodeFre(currentFreq);
-        }
+        }*/
+
+        int currentFreq = fft.getFrequency(datas, Record.DEFAULT_SAMPLE_RATE, 0, 256*8);
+        decodeFre(currentFreq);
 
         // 只显示一次
         Message msg = mHandler.obtainMessage();

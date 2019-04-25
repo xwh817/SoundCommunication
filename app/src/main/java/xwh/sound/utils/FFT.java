@@ -86,8 +86,7 @@ public class FFT {
         }
         Complex[] f = new Complex[FFT_N];
         for (int i = 0; i < FFT_N; i++) {
-            f[i] = new Complex(data[i + startIndex], 0); //实部为正弦波FFT_N点采样，赋值为1
-            //虚部为0
+            f[i] = new Complex(data[i + startIndex], 0); //实部为正弦波FFT_N点采样，赋值为1，虚部为0
         }
 
         f = fft(f);                                        //进行快速福利叶变换

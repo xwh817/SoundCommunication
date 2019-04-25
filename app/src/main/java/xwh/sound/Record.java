@@ -70,7 +70,7 @@ public class Record {
 
 					}
 
-					mDecoder.countFreq(waveDatas, SAMPLE_STEP);
+					mDecoder.countFreq1(waveDatas, SAMPLE_STEP);
 
 				}
 
