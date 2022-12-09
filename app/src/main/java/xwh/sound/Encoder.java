@@ -3,6 +3,7 @@ package xwh.sound;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +51,40 @@ public class Encoder {
 
 		}
 
+		return mCodes;
+	}
+
+	public static List<Integer> convertTextToCode_74hamming(String text) throws UnsupportedEncodingException {
+		byte[] bytes = text.getBytes("UTF-8");
+		List<Integer> mCodes = new ArrayList<>();
+		mCodes.add(4);
+		mCodes.add(4);
+		int[] temp = new int[14];
+		StringBuilder binaryString = new StringBuilder();
+		// little endian
+		for (byte b: bytes) {
+			for (int i = 0; i < 2; ++i) {
+				int curr = (b >> (i * 4)) & 0xf;
+				int d1 = curr & 1;
+				int d2 = (curr >> 1) & 1;
+				int d3 = (curr >> 2) & 1;
+				int d4 = (curr >> 3) & 1;
+				temp[2 + i * 7] = d1;
+				temp[4 + i * 7] = d2;
+				temp[5 + i * 7] = d3;
+				temp[6 + i * 7] = d4;
+				//chk bits
+				temp[0 + i * 7] =  (d1 ^ d2 ^ d4);
+				temp[1 + i * 7] =  (d1 ^ d3 ^ d4);
+				temp[3 + i * 7] =  (d2 ^ d3 ^ d4);
+			}
+			for (int i = 0; i < 7; ++i) {
+				int code = temp[i] + (temp[i+1] << 1);
+				mCodes.add(code);
+			}
+		}
+		mCodes.add(5);
+		mCodes.add(5);
 		return mCodes;
 	}
 }

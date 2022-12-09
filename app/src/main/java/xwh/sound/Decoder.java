@@ -5,8 +5,11 @@ import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import xwh.sound.utils.FFT;
 
@@ -27,6 +30,7 @@ public class Decoder {
     private int countEndCode = 0;
     private boolean startDecode;
     private ArrayList<Integer> codeIndexs;
+    private Queue<Integer> codeQueue;
 
     private Handler mHandler;
 
@@ -40,6 +44,7 @@ public class Decoder {
     public Decoder(Handler handler) {
         this.mHandler = handler;
         codeIndexs = new ArrayList<>();
+        codeQueue = new LinkedList<Integer>();
     }
 
     public void countFreq(short[] datas, int sampleStep) {
@@ -62,7 +67,7 @@ public class Decoder {
     /**
      * 对一个录音Buffer进行频率统计
      */
-    public int countFreq1(short[] datas, int sampleStep) {
+    public int countFreq1(short[] datas, int sampleStep) throws UnsupportedEncodingException {
         int itemStep = datas.length / COUNT_STEP_SIZE;
 
         int waveState = -1;
@@ -98,7 +103,7 @@ public class Decoder {
                 bufferFreqCount += waveCount;
                 currentFreq = waveCount * COUNT_STEP_SIZE * sampleStep / 2;	// 这里根据每小段得出频率（一秒内波形次数）
 
-                decodeFre(currentFreq);
+                decodeFre_74hamming(currentFreq);
 
                 stepCount = 0;
                 waveCount = 0;
@@ -199,6 +204,67 @@ public class Decoder {
         }
     }
 
+    public void decodeFre_74hamming(int fre) throws UnsupportedEncodingException {
+
+        int codeIndex = CodeBook.decode_codeword(fre);
+
+        if (codeIndex == -1) {
+            return;
+        } else if (codeIndex == CodeBook.START_INDEX_HAMMING) {
+            countEndCode = 0;
+            startDecode = true;
+            codeIndexs.clear();
+            lastStartTime = System.currentTimeMillis();
+        } else if (startDecode) {
+            countStartCode = 0;
+
+            if (System.currentTimeMillis() - lastStartTime > TIMEOUT) {
+                startDecode = false;
+                return;
+            }
+
+            if (codeIndex == CodeBook.END_INDEX_HAMMING) {
+                countEndCode++;
+                if (countEndCode >= 2) {
+                    countEndCode = 0;
+                    startDecode = false;
+                    List<Integer> cleanIndexs = dummyCodeIndexs(codeIndexs);
+
+                    Log.i("Record", "clearCodeIndexs:" + cleanIndexs);
+
+                    if (cleanIndexs.size() > 0) {
+                        showResult_74hamming(cleanIndexs);
+                    }
+                }
+            } else {
+                countEndCode = 0;
+                codeQueue.add(codeIndex);
+                if (codeQueue.size() >= 7) {
+                    int c = 0;
+                    int s = 0;
+                    for (int i = 0; i < 7; ++i) {
+                        s += (codeQueue.poll() << (2 * i));
+                    }
+                    int [] code = new int [7];
+                    for (int i = 0; i < 2; ++i) {
+                        int curr7bit = (s >> (i * 7)) & 0x7f;
+                        for (int j = 0; j < 7; ++j) {
+                            code[j] = (curr7bit >> j) & 0x1;
+                        }
+                        int errorBit = code[0] + code[1] << 1 + code[3] << 2;
+                        code[errorBit] = ~code[errorBit];
+                        int curr4bit = code[2] + code[4] << 1 + code[5] << 2 + code[6] << 3;
+                        c += (curr4bit << (4 * i));
+                    }
+                    codeIndexs.add(c);
+                }
+            }
+        } else {
+            countEndCode = 0;
+            countStartCode = 0;
+        }
+    }
+
     /**
      * 去重
      * 将频率串转为编码串，出现多个连续的频率转为一个码值
@@ -229,6 +295,11 @@ public class Decoder {
             }
         }
 
+        return list;
+    }
+
+    private  List<Integer> dummyCodeIndexs(ArrayList<Integer> codeIndexs) {
+        List<Integer> list = new ArrayList<>(codeIndexs);
         return list;
     }
 
@@ -284,5 +355,31 @@ public class Decoder {
         return text;
 
 	}
+
+    private String showResult_74hamming(List<Integer> codeIndexs) throws UnsupportedEncodingException {
+        byte [] bytes = new byte[codeIndexs.size()];
+        for (int i = 0; i < codeIndexs.size(); ++i) {
+            bytes[i] = codeIndexs.get(i).byteValue();
+        }
+        String re  = new String(bytes, "UTF-8");
+        String text = null;
+        try {
+            text = new String(Base64.decode(re, Base64.NO_WRAP | Base64.NO_PADDING));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (mHandler != null) {
+            Message msg = mHandler.obtainMessage();
+            msg.what = MainActivity.MSG_RESULT;
+            msg.obj = codeIndexs.toString() + "\n" + text;
+            mHandler.sendMessage(msg);
+        }
+
+        Log.d(TAG, "showResult:" + "____" + re +"____"+ text);
+
+        return text;
+
+    }
 
 }

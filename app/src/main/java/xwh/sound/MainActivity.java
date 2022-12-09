@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +83,11 @@ public class MainActivity extends AppCompatActivity {
 
 						//PCMPlayer.start(CodeBook.freqsWave[0], 2000);
 
-						testBase64();
+						try {
+							testBase64();
+						} catch (UnsupportedEncodingException e) {
+							e.printStackTrace();
+						}
 
 						//testCodes();
 
@@ -113,7 +118,11 @@ public class MainActivity extends AppCompatActivity {
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
-							record.start();
+							try {
+								record.start();
+							} catch (UnsupportedEncodingException e) {
+								e.printStackTrace();
+							}
 						}
 					}).start();
 				}
@@ -131,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
 					public void run() {
 						try {
 							int hz = Integer.parseInt(inputHz.getText().toString());
-							PCMPlayer.getInstance().start(hz, 2000);
+							PCMPlayer.getInstance().start(hz, 5000);
 
 							PCMPlayer.getInstance().stop();
 						} catch (NumberFormatException e) {
@@ -146,10 +155,10 @@ public class MainActivity extends AppCompatActivity {
 
 	}
 
-	private void testBase64() {
+	private void testBase64() throws UnsupportedEncodingException {
 		String test = inputHz.getText().toString();
 		String str = Base64.encodeToString(test.getBytes(), Base64.NO_WRAP | Base64.NO_PADDING);
-		List<Integer> codes = Encoder.convertTextToCodes(str);
+		List<Integer> codes = Encoder.convertTextToCode_74hamming(str);
 
 		Log.d("Encode", "encodeArray:" + codes);
 		PCMPlayer.getInstance().start(codes, 50);

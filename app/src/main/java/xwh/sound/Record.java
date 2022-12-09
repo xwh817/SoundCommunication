@@ -4,6 +4,8 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 
+import java.io.UnsupportedEncodingException;
+
 /**
  * Created by Administrator on 2017/11/20.
  */
@@ -38,7 +40,7 @@ public class Record {
 	}
 
 
-	public void start() {
+	public void start() throws UnsupportedEncodingException {
 
 		mBufferSize = (DEFAULT_SAMPLE_RATE / SAMPLE_STEP)  * 2;  // 16Bit，两个字节一个采样值。 mBufferSize是每次获取的录音数据量，这里取采样率的一部分，也就是0.1s的采样数据
 		int minBufferSize = AudioRecord.getMinBufferSize(DEFAULT_SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -49,7 +51,6 @@ public class Record {
 			mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, DEFAULT_SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, mBufferSize);
 
 			mAudioRecord.startRecording();
-
 
 			short[] waveDatas = new short[mBufferSize/2];
 

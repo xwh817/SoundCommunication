@@ -19,19 +19,23 @@ public class CodeBook {
 	public static final int START_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
 	public static final int END_INDEX = START_INDEX + 1;   // 结束标记
 
+	public static int freqDistance = 50;  // 两个频率之间的间距
+	public static final int START_INDEX_HAMMING = 4;
+	public static final int END_INDEX_HAMMING = 5;
+	public static final int BASE_FREQ = 10000;
+	public static final int START_FREQ = BASE_FREQ + freqDistance * 16;
+	public static final int END_FREQ = BASE_FREQ + freqDistance * 20;
+
 	/**
 	 * 两个book字典码来组成下面每个字符的编码
 	 */
 	public final static String CONTENT_CODE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";   // Base64编码
 
-
 	public static int[] freqsWave = new int[12];    // 将声音频率划分成12段，每一段表示一个字典码。
-
-	public static int freqDistance = 500;  // 两个频率之间的间距
 
 	static {
 		for(int i=0; i<freqsWave.length; i++) {
-			freqsWave[i] = 5000 + freqDistance * i;
+			freqsWave[i] = BASE_FREQ + freqDistance * i;
 		}
 	}
 
@@ -43,6 +47,34 @@ public class CodeBook {
 		return freq;
 	}
 
+	public static int encode_74hamming(int index) {
+		if (index == START_INDEX_HAMMING) {
+			return START_FREQ;
+		}
+		if (index == END_INDEX_HAMMING) {
+			return END_FREQ;
+		}
+		int freq_idx = _inv_gray(index, 2);
+		return freqsWave[freq_idx * 3 + 1];
+	}
+
+	private static int _gray(int value, int bitNum) {
+		value = value & ((1<<bitNum) - 1);
+		int res = 0;
+		for (int i = bitNum-1; i >= 0; i--) {
+			res += (((value >> i) & 0x1) ^ ((value >> (i + 1)) & 0x1)) << i;
+		}
+		return res;
+	}
+
+	private static int _inv_gray(int value, int bitNum) {
+		value = value & ((1<<bitNum) - 1);
+		int res = value & (1<<(bitNum-1));
+		for (int i = bitNum - 2; i >= 0; i--) {
+			res += (((value >> i) & 0x1) ^ ((res >> (i + 1)) & 0x1)) << i;
+		}
+		return res;
+	}
 
 	/**
 	 * 从码库里面找到一个最相近的
@@ -61,6 +93,25 @@ public class CodeBook {
 					index = i;
 				}
 			}
+		}
+		return index;
+	}
+
+	public static int decode_codeword(int fre) {
+
+		int index = decode(fre);
+		if (index == 11) {
+			if (Math.abs(fre - START_FREQ) < Math.abs(fre - freqsWave[11])) {
+				if (Math.abs(fre - START_FREQ) < Math.abs(fre - END_FREQ)) {
+					return START_INDEX_HAMMING;
+				} else {
+					return END_INDEX_HAMMING;
+				}
+			}
+		}
+		if (index != -1) {
+			index = index / 3;
+			index = _gray(index, 2);
 		}
 		return index;
 	}

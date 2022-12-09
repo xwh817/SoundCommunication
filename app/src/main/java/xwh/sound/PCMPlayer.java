@@ -115,7 +115,7 @@ public class PCMPlayer {
 		byte[] waveAll =  new byte[lengthItem * codeIndexs.size()];
 
 		for(int i=0; i<codeIndexs.size(); i++) {
-			int hz = CodeBook.encode(codeIndexs.get(i));
+			int hz = CodeBook.encode_74hamming(codeIndexs.get(i));
 			sin(waveAll, lengthItem * i, hz, lengthItem);   // 生成正弦波
 		}
 
