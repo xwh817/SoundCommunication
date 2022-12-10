@@ -1,5 +1,5 @@
 package xwh.sound;
-
+import android.util.Log;
 /**
  * 编码字典表
  * 用声音频率来表达不同的字符，理想的做法是每个字符对应一段指定频率的声音。但是声音容易被干扰，只能采用划分大的频率段的方式进行编码。
@@ -22,9 +22,13 @@ public class CodeBook {
 	public static int freqDistance = 50;  // 两个频率之间的间距
 	public static final int START_INDEX_HAMMING = 4;
 	public static final int END_INDEX_HAMMING = 5;
+	public static final int DUPLICATE_INDEX_1_HAMMING = 6;
+	public static final int DUPLICATE_INDEX_2_HAMMING = 7;
 	public static final int BASE_FREQ = 10000;
-	public static final int START_FREQ = BASE_FREQ + freqDistance * 16;
-	public static final int END_FREQ = BASE_FREQ + freqDistance * 20;
+	public static final int START_FREQ_HAMMING = BASE_FREQ + freqDistance * START_INDEX_HAMMING;
+	public static final int END_FREQ_HAMMING = BASE_FREQ + freqDistance * END_INDEX_HAMMING;
+	public static final int DUP1_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_1_HAMMING;
+	public static final int DUP2_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_2_HAMMING;
 
 	/**
 	 * 两个book字典码来组成下面每个字符的编码
@@ -49,13 +53,19 @@ public class CodeBook {
 
 	public static int encode_74hamming(int index) {
 		if (index == START_INDEX_HAMMING) {
-			return START_FREQ;
+			return START_FREQ_HAMMING;
 		}
 		if (index == END_INDEX_HAMMING) {
-			return END_FREQ;
+			return END_FREQ_HAMMING;
+		}
+		if (index == DUP1_FREQ_HAMMING) {
+			return DUP1_FREQ_HAMMING;
+		}
+		if (index == DUP2_FREQ_HAMMING) {
+			return DUP2_FREQ_HAMMING;
 		}
 		int freq_idx = _inv_gray(index, 2);
-		return freqsWave[freq_idx * 3 + 1];
+		return freqsWave[freq_idx];
 	}
 
 	private static int _gray(int value, int bitNum) {
@@ -73,6 +83,7 @@ public class CodeBook {
 		for (int i = bitNum - 2; i >= 0; i--) {
 			res += (((value >> i) & 0x1) ^ ((res >> (i + 1)) & 0x1)) << i;
 		}
+		//Log.i("_inv_gray", "before: " + value + " after: " + res);
 		return res;
 	}
 
@@ -97,22 +108,12 @@ public class CodeBook {
 		return index;
 	}
 
-	public static int decode_codeword(int fre) {
-
+	public static int decode_hamming(int fre) {
 		int index = decode(fre);
-		if (index == 11) {
-			if (Math.abs(fre - START_FREQ) < Math.abs(fre - freqsWave[11])) {
-				if (Math.abs(fre - START_FREQ) < Math.abs(fre - END_FREQ)) {
-					return START_INDEX_HAMMING;
-				} else {
-					return END_INDEX_HAMMING;
-				}
-			}
+		if (index == -1 || index >= START_INDEX_HAMMING) {
+			return index;
 		}
-		if (index != -1) {
-			index = index / 3;
-			index = _gray(index, 2);
-		}
+		index = _gray(index, 2);
 		return index;
 	}
 }

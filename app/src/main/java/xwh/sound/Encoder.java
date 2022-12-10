@@ -17,48 +17,40 @@ public class Encoder {
 	public static List<Integer> convertTextToCodes(String text) {
 		List<Integer> mCodes = new ArrayList<>();
 		if (!TextUtils.isEmpty(text)) {
-
 			mCodes.add(CodeBook.START_INDEX);    //开始
 			mCodes.add(CodeBook.START_INDEX);    //开始(防止丢失，重复添加两组)
 			int len = text.length();
 			for (int i = 0; i < len; ++i) {     // 内容
 				char ch = text.charAt(i);
-
 				int[] indexs = Utils.char2Indexs(ch);
 				if (indexs != null) {
 					mCodes.add(indexs[0]);
 					mCodes.add(indexs[1]);
 				} else {
-					//ret = false;
 					Log.d(TAG, "invalidate char:" + ch);
-					// break;
 				}
 			}
 			// 对内容进行crc校验
 			int[] crc = Utils.crc(mCodes, 2, mCodes.size()-1);
 			mCodes.add(crc[0]);
 			mCodes.add(crc[1]);
-
 			mCodes.add(CodeBook.END_INDEX);   //结束
 			mCodes.add(CodeBook.END_INDEX);   //结束(防止丢失，重复添加两组)
-
 			// 替换内容相邻相同字符
 			for (int i=mCodes.size()-3; i>2; i--) {
 				if (mCodes.get(i) == mCodes.get(i-1)) {
 					mCodes.set(i, i%2 == 0 ? CodeBook.DUPLICATE_INDEX_1 : CodeBook.DUPLICATE_INDEX_2);
 				}
 			}
-
 		}
-
 		return mCodes;
 	}
 
 	public static List<Integer> convertTextToCode_74hamming(String text) throws UnsupportedEncodingException {
 		byte[] bytes = text.getBytes("UTF-8");
 		List<Integer> mCodes = new ArrayList<>();
-		mCodes.add(4);
-		mCodes.add(4);
+		mCodes.add(CodeBook.START_INDEX_HAMMING);
+		mCodes.add(CodeBook.START_INDEX_HAMMING);
 		int[] temp = new int[14];
 		StringBuilder binaryString = new StringBuilder();
 		// little endian
@@ -78,13 +70,26 @@ public class Encoder {
 				temp[1 + i * 7] =  (d1 ^ d3 ^ d4);
 				temp[3 + i * 7] =  (d2 ^ d3 ^ d4);
 			}
+			int last_code = -1;
+			boolean odd = true;
 			for (int i = 0; i < 7; ++i) {
 				int code = temp[i] + (temp[i+1] << 1);
-				mCodes.add(code);
+				if (code != last_code) {
+					odd = true;
+					mCodes.add(code);
+					last_code = code;
+				} else if (odd) {
+					mCodes.add(CodeBook.DUPLICATE_INDEX_1_HAMMING);
+					odd = false;
+				} else {
+					mCodes.add(CodeBook.DUPLICATE_INDEX_2_HAMMING);
+					odd = true;
+				}
 			}
 		}
-		mCodes.add(5);
-		mCodes.add(5);
+		mCodes.add(CodeBook.END_INDEX_HAMMING);
+		mCodes.add(CodeBook.END_INDEX_HAMMING);
+		//Log.i("mCodes", "before: " + text + " after: " + mCodes);
 		return mCodes;
 	}
 }

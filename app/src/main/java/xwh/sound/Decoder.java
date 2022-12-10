@@ -7,6 +7,7 @@ import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -30,7 +31,8 @@ public class Decoder {
     private int countEndCode = 0;
     private boolean startDecode;
     private ArrayList<Integer> codeIndexs;
-    private Queue<Integer> codeQueue;
+    private Deque<Integer> codeQueue;
+    private int queueTop;
 
     private Handler mHandler;
 
@@ -45,6 +47,7 @@ public class Decoder {
         this.mHandler = handler;
         codeIndexs = new ArrayList<>();
         codeQueue = new LinkedList<Integer>();
+        queueTop = -1;
     }
 
     public void countFreq(short[] datas, int sampleStep) {
@@ -69,17 +72,14 @@ public class Decoder {
      */
     public int countFreq1(short[] datas, int sampleStep) throws UnsupportedEncodingException {
         int itemStep = datas.length / COUNT_STEP_SIZE;
-
         int waveState = -1;
         int stepCount = 0;
         int bufferFreqCount = 0;
         int currentFreq = 0;
         for(short sample : datas) {
-
             if (waveState == -1) {
                 waveState = sample > 0 ? UP : DOWN;
             }
-
             // 根据波形上下计算频率
             if (waveState == UP) {
                 if (sample < -10) {
@@ -92,8 +92,6 @@ public class Decoder {
                     waveCount++;
                 }
             }
-
-
             /**
              * 并不是每个buffer取一次频率，而是在一段buffer中获取小段，每个小段进行解码
              */
@@ -102,43 +100,19 @@ public class Decoder {
                 //waveCount = waveCount / 2;  // 一上一下表示一个波形，所以要除以2
                 bufferFreqCount += waveCount;
                 currentFreq = waveCount * COUNT_STEP_SIZE * sampleStep / 2;	// 这里根据每小段得出频率（一秒内波形次数）
-
                 decodeFre_74hamming(currentFreq);
-
                 stepCount = 0;
                 waveCount = 0;
             }
-
         }
-
-
         if (mHandler != null) {
-
-            /*if (listBufferFreq.size() >= sampleStep) {
-                listBufferFreq.remove(0);
-            }
-            listBufferFreq.add(bufferFreqCount);
-
-            int allCount = 0;
-            for(int bCount : listBufferFreq) {  // 累计最近1s采样得到频率
-                allCount += bCount;
-            }
-
-            int freq = allCount / 2;  // 一上一下表示一个波形，所以要除以2*/
-
-            //int freq = currentFreq;
             int freq = bufferFreqCount * sampleStep / 2;  // 一上一下表示一个波形，所以要除以2
-
             Message msg = mHandler.obtainMessage();
             msg.what = MainActivity.MSG_CURRENT_FREQ;
             msg.obj = freq + "";
             mHandler.sendMessage(msg);
-
-
             Log.i("Record", "fre:" + freq);
-
         }
-
         return currentFreq;
     }
 
@@ -206,23 +180,26 @@ public class Decoder {
 
     public void decodeFre_74hamming(int fre) throws UnsupportedEncodingException {
 
-        int codeIndex = CodeBook.decode_codeword(fre);
-
+        int codeIndex = CodeBook.decode_hamming(fre);
         if (codeIndex == -1) {
             return;
         } else if (codeIndex == CodeBook.START_INDEX_HAMMING) {
-            countEndCode = 0;
-            startDecode = true;
-            codeIndexs.clear();
-            lastStartTime = System.currentTimeMillis();
+            if (startDecode) {
+                return;
+            }
+            countStartCode++;
+            if (countStartCode >= 2) {
+                countEndCode = 0;
+                startDecode = true;
+                codeIndexs.clear();
+                lastStartTime = System.currentTimeMillis();
+            }
         } else if (startDecode) {
             countStartCode = 0;
-
             if (System.currentTimeMillis() - lastStartTime > TIMEOUT) {
                 startDecode = false;
                 return;
             }
-
             if (codeIndex == CodeBook.END_INDEX_HAMMING) {
                 countEndCode++;
                 if (countEndCode >= 2) {
@@ -238,12 +215,22 @@ public class Decoder {
                 }
             } else {
                 countEndCode = 0;
-                codeQueue.add(codeIndex);
+                if (queueTop != -1 && codeIndex == queueTop) {
+                    return;
+                } else {
+                    queueTop = codeIndex;
+                    if (codeIndex == CodeBook.DUPLICATE_INDEX_2_HAMMING || codeIndex == CodeBook.DUPLICATE_INDEX_1_HAMMING) {
+                        int value = codeQueue.getLast();
+                        codeQueue.add(value);
+                    } else {
+                        codeQueue.add(codeIndex);
+                    }
+                }
                 if (codeQueue.size() >= 7) {
                     int c = 0;
                     int s = 0;
                     for (int i = 0; i < 7 && !codeQueue.isEmpty(); ++i) {
-                        s += (codeQueue.poll() << (2 * i));
+                        s += (codeQueue.pollFirst() << (2 * i));
                     }
                     int [] code = new int [7];
                     for (int i = 0; i < 2; ++i) {
