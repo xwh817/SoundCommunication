@@ -242,7 +242,7 @@ public class Decoder {
                 if (codeQueue.size() >= 7) {
                     int c = 0;
                     int s = 0;
-                    for (int i = 0; i < 7; ++i) {
+                    for (int i = 0; i < 7 && !codeQueue.isEmpty(); ++i) {
                         s += (codeQueue.poll() << (2 * i));
                     }
                     int [] code = new int [7];
@@ -251,9 +251,11 @@ public class Decoder {
                         for (int j = 0; j < 7; ++j) {
                             code[j] = (curr7bit >> j) & 0x1;
                         }
-                        int errorBit = code[0] + code[1] << 1 + code[3] << 2;
-                        code[errorBit] = ~code[errorBit];
-                        int curr4bit = code[2] + code[4] << 1 + code[5] << 2 + code[6] << 3;
+                        int errorBit = code[0] + (code[1] << 1) + (code[3] << 2);
+                        if (errorBit != 0) {
+                            code[errorBit-1] = ~code[errorBit-1];
+                        }
+                        int curr4bit = code[2] + (code[4] << 1) + (code[5] << 2) + (code[6] << 3);
                         c += (curr4bit << (4 * i));
                     }
                     codeIndexs.add(c);
