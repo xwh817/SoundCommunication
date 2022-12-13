@@ -1,6 +1,8 @@
 package xwh.sound;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -9,14 +11,23 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.webkit.WebViewClient;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
 
 	private Button btRecord;
 
+	private Queue<String> url_queue = new LinkedList();
+
+	@SuppressLint("SetJavaScriptEnabled")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -48,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
 				String re = (String) msg.obj;
 				if (msg.what == MSG_RESULT) {
 					recordResult.append(re + "\n");
+					url_queue.add(re);
 				} else if (msg.what == MSG_CURRENT_FREQ) {
 					currentFreq.setText(re + "HZ");
 				}
@@ -125,33 +140,43 @@ public class MainActivity extends AppCompatActivity {
 							}
 						}
 					}).start();
+
+					// String name = "http://www.baidu.com/";
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							boolean flag = true;
+							while(flag){
+								if (url_queue.size() > 0){
+									String name = url_queue.poll();
+									Runnable networkTask = () -> {
+										try{
+											HttpGet httpRequest = new HttpGet(name);
+											HttpClient httpclient = new DefaultHttpClient();
+											HttpResponse response = httpclient.execute(httpRequest);
+											if (response.getStatusLine().getStatusCode() == 200) {
+												Intent intent = new Intent(MainActivity.this,webpage.class);
+												intent.putExtra("context", name);
+												startActivity(intent);
+											}
+										}catch(Exception e){
+											e.printStackTrace();
+										}
+									};
+									new Thread(networkTask).start();
+								}
+							}
+						}
+					}).start();
+
 				}
 
 
 			}
 		});
 
-		findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				// 播放声音在主线程会阻塞界面刷新，要放在子线程中
-				new Thread(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							int hz = Integer.parseInt(inputHz.getText().toString());
-							PCMPlayer.getInstance().start(hz, 5000);
 
-							PCMPlayer.getInstance().stop();
-						} catch (NumberFormatException e) {
-							Toast.makeText(MainActivity.this, "Please input frequency", Toast.LENGTH_SHORT).show();
-						}
 
-					}
-				}).start();
-
-			}
-		});
 
 	}
 
