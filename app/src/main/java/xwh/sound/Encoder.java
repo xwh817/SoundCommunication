@@ -5,6 +5,7 @@ import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -55,8 +56,11 @@ public class Encoder {
 		StringBuilder binaryString = new StringBuilder();
 		// little endian
 		for (byte b: bytes) {
+			int cb = b;
+			Log.i("byte", String.valueOf(cb));
 			for (int i = 0; i < 2; ++i) {
 				int curr = (b >> (i * 4)) & 0xf;
+				Log.i("curr", String.valueOf(curr));
 				int d1 = curr & 1;
 				int d2 = (curr >> 1) & 1;
 				int d3 = (curr >> 2) & 1;
@@ -70,10 +74,11 @@ public class Encoder {
 				temp[1 + i * 7] =  (d1 ^ d3 ^ d4);
 				temp[3 + i * 7] =  (d2 ^ d3 ^ d4);
 			}
+			Log.i("bitarray", Arrays.toString(temp));
 			int last_code = -1;
 			boolean odd = true;
 			for (int i = 0; i < 7; ++i) {
-				int code = temp[i] + (temp[i+1] << 1);
+				int code = temp[i*2] + (temp[i*2+1] << 1);
 				if (code != last_code) {
 					odd = true;
 					mCodes.add(code);
@@ -89,7 +94,7 @@ public class Encoder {
 		}
 		mCodes.add(CodeBook.END_INDEX_HAMMING);
 		mCodes.add(CodeBook.END_INDEX_HAMMING);
-		//Log.i("mCodes", "before: " + text + " after: " + mCodes);
+		Log.i("mCodes", "before: " + text + " after: " + mCodes);
 		return mCodes;
 	}
 }

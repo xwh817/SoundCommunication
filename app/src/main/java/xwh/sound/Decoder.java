@@ -32,6 +32,7 @@ public class Decoder {
     private boolean startDecode;
     private ArrayList<Integer> codeIndexs;
     private Deque<Integer> codeQueue;
+    private Deque<Integer> debugQueue;
     private int queueTop;
 
     private Handler mHandler;
@@ -39,7 +40,7 @@ public class Decoder {
     private long lastStartTime;
     private static final int TIMEOUT = 10000;
 
-    private static final int COUNT_STEP_SIZE = 10;
+    private static final int COUNT_STEP_SIZE = 5;
 
     private FFT fft = new FFT();
 
@@ -47,6 +48,7 @@ public class Decoder {
         this.mHandler = handler;
         codeIndexs = new ArrayList<>();
         codeQueue = new LinkedList<Integer>();
+        debugQueue = new LinkedList<Integer>();
         queueTop = -1;
     }
 
@@ -111,7 +113,9 @@ public class Decoder {
             msg.what = MainActivity.MSG_CURRENT_FREQ;
             msg.obj = freq + "";
             mHandler.sendMessage(msg);
-            Log.i("Record", "fre:" + freq);
+            if (freq > CodeBook.START_FREQ_HAMMING) {
+                Log.i("Record", "fre:" + freq);
+            }
         }
         return currentFreq;
     }
@@ -208,6 +212,7 @@ public class Decoder {
                     List<Integer> cleanIndexs = dummyCodeIndexs(codeIndexs);
 
                     Log.i("Record", "clearCodeIndexs:" + cleanIndexs);
+                    Log.i("Record", "fracs: " + debugQueue.toString());
 
                     if (cleanIndexs.size() > 0) {
                         showResult_74hamming(cleanIndexs);
@@ -222,8 +227,10 @@ public class Decoder {
                     if (codeIndex == CodeBook.DUPLICATE_INDEX_2_HAMMING || codeIndex == CodeBook.DUPLICATE_INDEX_1_HAMMING) {
                         int value = codeQueue.getLast();
                         codeQueue.add(value);
+                        debugQueue.add(value);
                     } else {
                         codeQueue.add(codeIndex);
+                        debugQueue.add(codeIndex);
                     }
                 }
                 if (codeQueue.size() >= 7) {
@@ -238,9 +245,12 @@ public class Decoder {
                         for (int j = 0; j < 7; ++j) {
                             code[j] = (curr7bit >> j) & 0x1;
                         }
-                        int errorBit = code[0] + (code[1] << 1) + (code[3] << 2);
+                        int ch1 = code[0] ^ code[2] ^ code[4] ^ code[6];
+                        int ch2 = code[1] ^ code[2] ^ code[5] ^ code[6];
+                        int ch3 = code[3] ^ code[4] ^ code[5] ^ code[6];
+                        int errorBit = ch1 + (ch2 << 1) + (ch3 << 2);
                         if (errorBit != 0) {
-                            code[errorBit-1] = ~code[errorBit-1];
+                            code[errorBit-1] = 1 - code[errorBit-1];
                         }
                         int curr4bit = code[2] + (code[4] << 1) + (code[5] << 2) + (code[6] << 3);
                         c += (curr4bit << (4 * i));
@@ -361,11 +371,11 @@ public class Decoder {
         if (mHandler != null) {
             Message msg = mHandler.obtainMessage();
             msg.what = MainActivity.MSG_RESULT;
-            msg.obj = codeIndexs.toString() + "\n" + text;
+            msg.obj = debugQueue.toString() + "\n" + text;
             mHandler.sendMessage(msg);
         }
 
-        Log.d(TAG, "showResult:" + "____" + re +"____"+ text);
+        Log.d(TAG, "showResult:" + "____" + codeIndexs +"____"+ text);
 
         return text;
 

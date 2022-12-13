@@ -19,7 +19,7 @@ public class CodeBook {
 	public static final int START_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
 	public static final int END_INDEX = START_INDEX + 1;   // 结束标记
 
-	public static int freqDistance = 50;  // 两个频率之间的间距
+	public static int freqDistance = 500;  // 两个频率之间的间距
 	public static final int START_INDEX_HAMMING = 4;
 	public static final int END_INDEX_HAMMING = 5;
 	public static final int DUPLICATE_INDEX_1_HAMMING = 6;
