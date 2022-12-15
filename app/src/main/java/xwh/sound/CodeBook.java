@@ -19,12 +19,14 @@ public class CodeBook {
 	public static final int START_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
 	public static final int END_INDEX = START_INDEX + 1;   // 结束标记
 
-	public static int freqDistance = 500;  // 两个频率之间的间距
+	public static final int SEP_INDEX = END_INDEX + 1; // 分割符
+
+	public static int freqDistance = 200;  // 两个频率之间的间距
 	public static final int START_INDEX_HAMMING = 4;
 	public static final int END_INDEX_HAMMING = 6;
 	public static final int DUPLICATE_INDEX_1_HAMMING = 5;
 	public static final int DUPLICATE_INDEX_2_HAMMING = 7;
-	public static final int BASE_FREQ = 2000;
+	public static final int BASE_FREQ = 5000;
 	public static final int START_FREQ_HAMMING = BASE_FREQ + freqDistance * START_INDEX_HAMMING;
 	public static final int END_FREQ_HAMMING = BASE_FREQ + freqDistance * END_INDEX_HAMMING;
 	public static final int DUP1_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_1_HAMMING;
@@ -35,7 +37,7 @@ public class CodeBook {
 	 */
 	public final static String CONTENT_CODE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";   // Base64编码
 
-	public static int[] freqsWave = new int[12];    // 将声音频率划分成12段，每一段表示一个字典码。
+	public static int[] freqsWave = new int[13];    // 将声音频率划分成12段，每一段表示一个字典码。
 
 	static {
 		for(int i=0; i<freqsWave.length; i++) {
