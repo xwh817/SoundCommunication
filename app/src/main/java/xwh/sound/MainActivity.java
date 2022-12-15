@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
 	private void testBase64() throws UnsupportedEncodingException {
 		String test = inputHz.getText().toString();
 		String str = Base64.encodeToString(test.getBytes(), Base64.NO_WRAP | Base64.NO_PADDING);
-		List<Integer> codes = Encoder.convertTextToCode_74hamming(str);
+		List<Integer> codes = Encoder.convertTextToCodes(str);
 
 		Log.d("Encode", "encodeArray:" + codes);
 		PCMPlayer.getInstance().start(codes, 50);

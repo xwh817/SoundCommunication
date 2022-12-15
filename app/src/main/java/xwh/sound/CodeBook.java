@@ -21,10 +21,10 @@ public class CodeBook {
 
 	public static int freqDistance = 500;  // 两个频率之间的间距
 	public static final int START_INDEX_HAMMING = 4;
-	public static final int END_INDEX_HAMMING = 5;
-	public static final int DUPLICATE_INDEX_1_HAMMING = 6;
+	public static final int END_INDEX_HAMMING = 6;
+	public static final int DUPLICATE_INDEX_1_HAMMING = 5;
 	public static final int DUPLICATE_INDEX_2_HAMMING = 7;
-	public static final int BASE_FREQ = 10000;
+	public static final int BASE_FREQ = 2000;
 	public static final int START_FREQ_HAMMING = BASE_FREQ + freqDistance * START_INDEX_HAMMING;
 	public static final int END_FREQ_HAMMING = BASE_FREQ + freqDistance * END_INDEX_HAMMING;
 	public static final int DUP1_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_1_HAMMING;
@@ -65,7 +65,7 @@ public class CodeBook {
 			return DUP2_FREQ_HAMMING;
 		}
 		int freq_idx = _inv_gray(index, 2);
-		return freqsWave[freq_idx];
+		return freqsWave[index];
 	}
 
 	private static int _gray(int value, int bitNum) {
@@ -110,10 +110,11 @@ public class CodeBook {
 
 	public static int decode_hamming(int fre) {
 		int index = decode(fre);
-		if (index == -1 || index >= START_INDEX_HAMMING) {
-			return index;
-		}
-		index = _gray(index, 2);
+		//if (index == -1 || index >= START_INDEX_HAMMING) {
+		//	return index;
+		//}
+		//index = _gray(index, 2);
+		if (index > DUPLICATE_INDEX_2_HAMMING) index = DUPLICATE_INDEX_2_HAMMING;
 		return index;
 	}
 }

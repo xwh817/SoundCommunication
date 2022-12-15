@@ -34,13 +34,14 @@ public class Decoder {
     private Deque<Integer> codeQueue;
     private Deque<Integer> debugQueue;
     private int queueTop;
+    private int lastIndex;
 
     private Handler mHandler;
 
     private long lastStartTime;
     private static final int TIMEOUT = 10000;
 
-    private static final int COUNT_STEP_SIZE = 5;
+    private static final int COUNT_STEP_SIZE = 20;
 
     private FFT fft = new FFT();
 
@@ -50,6 +51,7 @@ public class Decoder {
         codeQueue = new LinkedList<Integer>();
         debugQueue = new LinkedList<Integer>();
         queueTop = -1;
+        lastIndex = -1;
     }
 
     public void countFreq(short[] datas, int sampleStep) {
@@ -102,7 +104,7 @@ public class Decoder {
                 //waveCount = waveCount / 2;  // 一上一下表示一个波形，所以要除以2
                 bufferFreqCount += waveCount;
                 currentFreq = waveCount * COUNT_STEP_SIZE * sampleStep / 2;	// 这里根据每小段得出频率（一秒内波形次数）
-                decodeFre_74hamming(currentFreq);
+                decodeFre(currentFreq);
                 stepCount = 0;
                 waveCount = 0;
             }
@@ -194,6 +196,8 @@ public class Decoder {
             countStartCode++;
             if (countStartCode >= 2) {
                 countEndCode = 0;
+                debugQueue.clear();
+                codeQueue.clear();
                 startDecode = true;
                 codeIndexs.clear();
                 lastStartTime = System.currentTimeMillis();
@@ -220,17 +224,17 @@ public class Decoder {
                 }
             } else {
                 countEndCode = 0;
-                if (queueTop != -1 && codeIndex == queueTop) {
+                if (lastIndex != -1 && codeIndex == lastIndex) {
                     return;
                 } else {
-                    queueTop = codeIndex;
-                    if (codeIndex == CodeBook.DUPLICATE_INDEX_2_HAMMING || codeIndex == CodeBook.DUPLICATE_INDEX_1_HAMMING) {
-                        int value = codeQueue.getLast();
-                        codeQueue.add(value);
-                        debugQueue.add(value);
+                    lastIndex = codeIndex;
+                    if (queueTop != -1 && (codeIndex == CodeBook.DUPLICATE_INDEX_2_HAMMING || codeIndex == CodeBook.DUPLICATE_INDEX_1_HAMMING)) {
+                        codeQueue.add(queueTop);
+                        debugQueue.add(queueTop);
                     } else {
                         codeQueue.add(codeIndex);
                         debugQueue.add(codeIndex);
+                        queueTop = codeIndex;
                     }
                 }
                 if (codeQueue.size() >= 7) {
