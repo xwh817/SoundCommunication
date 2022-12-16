@@ -468,21 +468,33 @@ public class Decoder {
                 }
                 process_complete_pack(frag, indexs);
             } else {
-                for (int i = 0; i < 6; ++i) {
+                for (int i = 0; i <= 6; ++i) {
                     frag.add(i, 0);
                     int error_pos = process_complete_pack(frag, indexs);
                     if (error_pos == -1 || error_pos == i) {
+                        Log.d(TAG, "correct success: " + error_pos + " = " + i);
                         return indexs;
                     }
                     frag.remove(i);
                 }
             }
-            return indexs;
-        }
-        else if (frag.size() > 7) {
+        } else if (frag.size() > 7) {
             Log.d(TAG, "Redundant of units");
-            frag = frag.subList(0, 7);
-            process_complete_pack(frag, indexs);
+            if (frag.size() > 8) {
+                frag = frag.subList(0, 7);
+                process_complete_pack(frag, indexs);
+            } else {
+                for (int i = 0; i < 8; ++i) {
+                    int tmp = frag.get(i);
+                    frag.remove(i);
+                    int error_pos = process_complete_pack(frag, indexs);
+                    if (error_pos == -1) {
+                        Log.d(TAG, "correct success: " + error_pos + " now i = " + i);
+                        return indexs;
+                    }
+                    frag.add(i, tmp);
+                }
+            }
         }
         else {
             process_complete_pack(frag, indexs);
@@ -504,18 +516,18 @@ public class Decoder {
         }
         if (chk2 != 0) {
             pos += 2;
-            offset = chk1;
+            offset = chk2;
         }
         if (chk3 != 0) {
             pos += 4;
-            offset = chk1;
+            offset = chk3;
         }
         pos -= 1;
         if (pos != -1) {
             int error_value = frag.get(pos);
             frag.set(pos, (error_value + CodeBook.CODE_BOOK_LENGTH_CONTENT - offset) % CodeBook.CODE_BOOK_LENGTH_CONTENT);
         }
-        Log.d(TAG, "processed: " + frag);
+        Log.d(TAG, "processed: " + frag + "corrected: " + pos);
         indexs[0] = frag.get(2);
         indexs[1] = frag.get(4);
         indexs[2] = frag.get(5);
