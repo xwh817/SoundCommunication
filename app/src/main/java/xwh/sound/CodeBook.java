@@ -16,17 +16,17 @@ public class CodeBook {
 	public static final int CODE_BOOK_LENGTH_CONTENT = 8;  // 内容编码长度 （0-7为内容）
 	public static final int DUPLICATE_INDEX_1 = CODE_BOOK_LENGTH_CONTENT; // 重复标记1
 	public static final int DUPLICATE_INDEX_2 = DUPLICATE_INDEX_1 +1; // 重复标记2
-	public static final int START_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
-	public static final int END_INDEX = START_INDEX + 1;   // 结束标记
+	public static final int END_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
+	public static final int START_INDEX = END_INDEX + 1;   // 结束标记
 
-	public static final int SEP_INDEX = END_INDEX + 1; // 分割符
+	public static final int SEP_INDEX = START_INDEX + 1; // 分割符
 
 	public static int freqDistance = 200;  // 两个频率之间的间距
 	public static final int START_INDEX_HAMMING = 4;
 	public static final int END_INDEX_HAMMING = 6;
 	public static final int DUPLICATE_INDEX_1_HAMMING = 5;
 	public static final int DUPLICATE_INDEX_2_HAMMING = 7;
-	public static final int BASE_FREQ = 5000;
+	public static final int BASE_FREQ = 10000;
 	public static final int START_FREQ_HAMMING = BASE_FREQ + freqDistance * START_INDEX_HAMMING;
 	public static final int END_FREQ_HAMMING = BASE_FREQ + freqDistance * END_INDEX_HAMMING;
 	public static final int DUP1_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_1_HAMMING;

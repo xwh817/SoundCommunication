@@ -186,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
 		List<Integer> codes = Encoder.convertTextToCode_SeqHamming(str);
 
 		Log.d("Encode", "encodeArray:" + codes);
-		PCMPlayer.getInstance().start(codes, 100);
+		PCMPlayer.getInstance().start(codes, 50);
 	}
 
 	private void testCodes() {

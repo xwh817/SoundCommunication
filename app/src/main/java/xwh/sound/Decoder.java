@@ -411,6 +411,7 @@ public class Decoder {
                 raw_indexs.set(i, raw_indexs.get(temp));
             }
         }
+        // 截取字符段进行译码
         for (int i = 0; i < raw_indexs.size(); ++i) {
             while (i < raw_indexs.size() && raw_indexs.get(i) == CodeBook.SEP_INDEX) {
                 i++;
@@ -434,6 +435,11 @@ public class Decoder {
             mTextBuilder.append(c);
         }
         String re = mTextBuilder.toString();
+        if(re.endsWith("0")) {
+            re = re.replaceAll("0+$", "");
+        } else if (re.endsWith("1")) {
+            re = re.replaceAll("1+$", "");
+        }
         String text = null;
         try {
             text = new String(Base64.decode(re, Base64.NO_WRAP | Base64.NO_PADDING));
@@ -446,53 +452,75 @@ public class Decoder {
             msg.obj = indexs.toString() + "\n" + text;
             mHandler.sendMessage(msg);
         }
-        Log.d(TAG, "showResult:" + re +"____"+ text);
+        Log.d(TAG, "showResult:" + re +" --> "+ text);
         return text;
     }
 
+    // 译码及纠错
     private int[] correct(List<Integer> frag) {
-        Log.d(TAG, "Received fragment: " + frag);
+        Log.d(TAG, "correct: " + frag);
         int[] indexs = new int[4];
         if (frag.size() < 7) {
             Log.d(TAG, "Loss of units");
-            while (frag.size() < 7) {
-                frag.add(0);
+            if (frag.size() < 6) {
+                while (frag.size() < 7) {
+                    frag.add(0);
+                }
+                process_complete_pack(frag, indexs);
+            } else {
+                for (int i = 0; i < 6; ++i) {
+                    frag.add(i, 0);
+                    int error_pos = process_complete_pack(frag, indexs);
+                    if (error_pos == -1 || error_pos == i) {
+                        return indexs;
+                    }
+                    frag.remove(i);
+                }
             }
+            return indexs;
         }
-        if (frag.size() > 7) {
+        else if (frag.size() > 7) {
             Log.d(TAG, "Redundant of units");
             frag = frag.subList(0, 7);
+            process_complete_pack(frag, indexs);
         }
-        if (frag.size() == 7) {
-            int pos = 0;
-            int chk1 = (frag.get(0) + frag.get(2) + frag.get(4) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
-            int chk2 = (frag.get(1) + frag.get(2) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
-            int chk3 = (frag.get(3) + frag.get(4) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
-            int offset = 0;
-            if (chk1 != 0) {
-                pos += 1;
-                offset = chk1;
-            }
-            if (chk2 != 0) {
-                pos += 2;
-                offset = chk1;
-            }
-            if (chk3 != 0) {
-                pos += 4;
-                offset = chk1;
-            }
-            if (pos != 0) {
-                pos -= 1;
-                int error_value = frag.get(pos);
-                frag.set(pos, (error_value + CodeBook.CODE_BOOK_LENGTH_CONTENT - offset) % CodeBook.CODE_BOOK_LENGTH_CONTENT);
-            }
-            Log.d(TAG, "Corrected fragment: " + frag);
-            indexs[0] = frag.get(2);
-            indexs[1] = frag.get(4);
-            indexs[2] = frag.get(5);
-            indexs[3] = frag.get(6);
+        else {
+            process_complete_pack(frag, indexs);
         }
         return indexs;
+    }
+
+    private int process_complete_pack(List<Integer> _frag, int[] indexs) {
+        Log.d(TAG, "process: " + _frag);
+        List<Integer> frag = new ArrayList<Integer>(_frag);
+        int pos = 0;
+        int chk1 = (frag.get(0) + frag.get(2) + frag.get(4) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int chk2 = (frag.get(1) + frag.get(2) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int chk3 = (frag.get(3) + frag.get(4) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int offset = 0;
+        if (chk1 != 0) {
+            pos += 1;
+            offset = chk1;
+        }
+        if (chk2 != 0) {
+            pos += 2;
+            offset = chk1;
+        }
+        if (chk3 != 0) {
+            pos += 4;
+            offset = chk1;
+        }
+        pos -= 1;
+        if (pos != -1) {
+            int error_value = frag.get(pos);
+            frag.set(pos, (error_value + CodeBook.CODE_BOOK_LENGTH_CONTENT - offset) % CodeBook.CODE_BOOK_LENGTH_CONTENT);
+        }
+        Log.d(TAG, "processed: " + frag);
+        indexs[0] = frag.get(2);
+        indexs[1] = frag.get(4);
+        indexs[2] = frag.get(5);
+        indexs[3] = frag.get(6);
+        return pos;
     }
 
     private String showResult_74hamming(List<Integer> codeIndexs) throws UnsupportedEncodingException {
