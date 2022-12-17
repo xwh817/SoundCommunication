@@ -2,20 +2,19 @@ package xwh.sound;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.net.http.SslError;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
+import android.app.Activity;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 
-public class webpage extends AppCompatActivity {
+public class webpage extends Activity {
 
 
     private WebView web;
@@ -28,9 +27,18 @@ public class webpage extends AppCompatActivity {
         String name=intent.getStringExtra("context");
 
         web = this.findViewById(R.id.web_view);
+
+
+
         web.getSettings().setJavaScriptEnabled(true);
         web.loadUrl(name);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient(){
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                handler.proceed();
+            }
+        });
+//        web.setWebViewClient(new WebViewClient());
 
 
 

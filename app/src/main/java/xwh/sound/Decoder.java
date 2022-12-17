@@ -20,7 +20,7 @@ import xwh.sound.utils.FFT;
 
 public class Decoder {
 
-	public static final String TAG = "Decoder";
+    public static final String TAG = "Decoder";
 
     private final static int UP = 1;
     private final static int DOWN = 2;
@@ -34,13 +34,14 @@ public class Decoder {
     private Deque<Integer> codeQueue;
     private Deque<Integer> debugQueue;
     private int queueTop;
+    private int lastIndex;
 
     private Handler mHandler;
 
     private long lastStartTime;
     private static final int TIMEOUT = 10000;
 
-    private static final int COUNT_STEP_SIZE = 5;
+    private static final int COUNT_STEP_SIZE = 20;
 
     private FFT fft = new FFT();
 
@@ -50,6 +51,7 @@ public class Decoder {
         codeQueue = new LinkedList<Integer>();
         debugQueue = new LinkedList<Integer>();
         queueTop = -1;
+        lastIndex = -1;
     }
 
     public void countFreq(short[] datas, int sampleStep) {
@@ -102,7 +104,12 @@ public class Decoder {
                 //waveCount = waveCount / 2;  // 一上一下表示一个波形，所以要除以2
                 bufferFreqCount += waveCount;
                 currentFreq = waveCount * COUNT_STEP_SIZE * sampleStep / 2;	// 这里根据每小段得出频率（一秒内波形次数）
-                decodeFre_74hamming(currentFreq);
+                if (MainActivity.METHOD == 1)
+                    decodeFre(currentFreq);
+                if (MainActivity.METHOD == 2)
+                    decodeFre_74hamming(currentFreq);
+                if (MainActivity.METHOD == 3)
+                    decodeFre_SeqHamming(currentFreq);
                 stepCount = 0;
                 waveCount = 0;
             }
@@ -113,8 +120,8 @@ public class Decoder {
             msg.what = MainActivity.MSG_CURRENT_FREQ;
             msg.obj = freq + "";
             mHandler.sendMessage(msg);
-            if (freq > CodeBook.START_FREQ_HAMMING) {
-                Log.i("Record", "fre:" + freq);
+            if (freq > MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * CodeBook.START_INDEX_HAMMING) {
+                //Log.i("Record", "fre:" + freq);
             }
         }
         return currentFreq;
@@ -125,20 +132,14 @@ public class Decoder {
      * @param fre
      */
     public void decodeFre(int fre) {
-
         int codeIndex = CodeBook.decode(fre);
-
         if (codeIndex != -1) {
-
-            Log.i("Record", "waveCount:" + waveCount + ", fre:" + fre + ", decode:" + codeIndex);
-
+            //Log.i("Record", "waveCount:" + waveCount + ", fre:" + fre + ", decode:" + codeIndex);
             if (codeIndex == CodeBook.START_INDEX) {
                 countEndCode = 0;
-
                 if (startDecode) {
                     return;
                 }
-
                 countStartCode++;
                 if (countStartCode >= 2) {
                     countStartCode = 0;
@@ -148,27 +149,21 @@ public class Decoder {
                 }
             } else if (startDecode) {
                 countStartCode = 0;
-
                 if (System.currentTimeMillis() - lastStartTime > TIMEOUT) {
                     startDecode = false;    // 可能上一次结束码丢失，超时
                     return;
                 }
-
                 if (codeIndex == CodeBook.END_INDEX) {
                     countEndCode++;
                     if (countEndCode >= 2) {
                         countEndCode = 0;
                         startDecode = false;
                         List<Integer> cleanIndexs = cleanCodeIndexs(codeIndexs);
-
                         Log.i("Record", "clearCodeIndexs:" + cleanIndexs);
-
                         if(cleanIndexs.size() > 0) {
                             showResult(cleanIndexs);
                         }
-
                     }
-
                 } else {
                     countEndCode = 0;
                     codeIndexs.add(codeIndex);
@@ -177,8 +172,50 @@ public class Decoder {
                 countStartCode = 0;
                 countEndCode = 0;
             }
+        }
+    }
 
-
+    public void decodeFre_SeqHamming(int fre) {
+        int codeIndex = CodeBook.decode(fre);
+        if (codeIndex != -1) {
+            //Log.i("Record", "waveCount:" + waveCount + ", fre:" + fre + ", decode:" + codeIndex);
+            if (codeIndex == CodeBook.START_INDEX) {
+                countEndCode = 0;
+                if (startDecode) {
+                    return;
+                }
+                countStartCode++;
+                if (countStartCode >= 2) {
+                    countStartCode = 0;
+                    startDecode = true;
+                    codeIndexs.clear();
+                    lastStartTime = System.currentTimeMillis();
+                }
+            } else if (startDecode) {
+                countStartCode = 0;
+                if (System.currentTimeMillis() - lastStartTime > TIMEOUT) {
+                    startDecode = false;    // 可能上一次结束码丢失，超时
+                    return;
+                }
+                if (codeIndex == CodeBook.END_INDEX) {
+                    countEndCode++;
+                    if (countEndCode >= 2) {
+                        countEndCode = 0;
+                        startDecode = false;
+                        List<Integer> cleanIndexs = cleanCodeIndexs(codeIndexs);
+                        Log.i("Record", "clearCodeIndexs:" + cleanIndexs);
+                        if(cleanIndexs.size() > 0) {
+                            showResult_SeqHamming(cleanIndexs);
+                        }
+                    }
+                } else {
+                    countEndCode = 0;
+                    codeIndexs.add(codeIndex);
+                }
+            } else {
+                countStartCode = 0;
+                countEndCode = 0;
+            }
         }
     }
 
@@ -194,6 +231,8 @@ public class Decoder {
             countStartCode++;
             if (countStartCode >= 2) {
                 countEndCode = 0;
+                debugQueue.clear();
+                codeQueue.clear();
                 startDecode = true;
                 codeIndexs.clear();
                 lastStartTime = System.currentTimeMillis();
@@ -220,17 +259,17 @@ public class Decoder {
                 }
             } else {
                 countEndCode = 0;
-                if (queueTop != -1 && codeIndex == queueTop) {
+                if (lastIndex != -1 && codeIndex == lastIndex) {
                     return;
                 } else {
-                    queueTop = codeIndex;
-                    if (codeIndex == CodeBook.DUPLICATE_INDEX_2_HAMMING || codeIndex == CodeBook.DUPLICATE_INDEX_1_HAMMING) {
-                        int value = codeQueue.getLast();
-                        codeQueue.add(value);
-                        debugQueue.add(value);
+                    lastIndex = codeIndex;
+                    if (queueTop != -1 && (codeIndex == CodeBook.DUPLICATE_INDEX_2_HAMMING || codeIndex == CodeBook.DUPLICATE_INDEX_1_HAMMING)) {
+                        codeQueue.add(queueTop);
+                        debugQueue.add(queueTop);
                     } else {
                         codeQueue.add(codeIndex);
                         debugQueue.add(codeIndex);
+                        queueTop = codeIndex;
                     }
                 }
                 if (codeQueue.size() >= 7) {
@@ -305,47 +344,47 @@ public class Decoder {
 
 
     private String showResult(List<Integer> indexs) {
-		if (indexs.size() < 2) {
-			return null;
-		}
+        if (indexs.size() < 2) {
+            return null;
+        }
 
-		// 还原相邻相同字符
-		for (int i=indexs.size()-1; i>0; i--) {
-			if (indexs.get(i) == CodeBook.DUPLICATE_INDEX_1 || indexs.get(i) == CodeBook.DUPLICATE_INDEX_2) {
-				int temp = i -1;
-				while(temp>0 && (indexs.get(temp) == CodeBook.DUPLICATE_INDEX_1 || indexs.get(temp) == CodeBook.DUPLICATE_INDEX_2)) {
-					temp --;
-					continue;
-				}
+        // 还原相邻相同字符
+        for (int i=indexs.size()-1; i>0; i--) {
+            if (indexs.get(i) == CodeBook.DUPLICATE_INDEX_1 || indexs.get(i) == CodeBook.DUPLICATE_INDEX_2) {
+                int temp = i -1;
+                while(temp>0 && (indexs.get(temp) == CodeBook.DUPLICATE_INDEX_1 || indexs.get(temp) == CodeBook.DUPLICATE_INDEX_2)) {
+                    temp --;
+                    continue;
+                }
 
-				indexs.set(i, indexs.get(temp));
-			}
-		}
+                indexs.set(i, indexs.get(temp));
+            }
+        }
 
-		int crcContent0 = indexs.get(indexs.size() -2);
+        int crcContent0 = indexs.get(indexs.size() -2);
         int crcContent1 = indexs.get(indexs.size() -1);
-		int[] crc = Utils.crc(indexs, 0, indexs.size() -3);
+        int[] crc = Utils.crc(indexs, 0, indexs.size() -3);
         boolean crcResult = (crc[0] == crcContent0 && crc[1] == crcContent1);
 
-		StringBuilder mTextBuilder = new StringBuilder();
-		for(int i=0; i<indexs.size() -2; i+=2) {
-			char c = Utils.indexs2Char(indexs.get(i), indexs.get(i+1));
-			mTextBuilder.append(c);
-		}
+        StringBuilder mTextBuilder = new StringBuilder();
+        for(int i=0; i<indexs.size() -2; i+=2) {
+            char c = Utils.indexs2Char(indexs.get(i), indexs.get(i+1));
+            mTextBuilder.append(c);
+        }
 
-		String re = mTextBuilder.toString();
+        String re = mTextBuilder.toString();
 
-		String text = null;
-		try {
-			text = new String(Base64.decode(re, Base64.NO_WRAP | Base64.NO_PADDING));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+        String text = null;
+        try {
+            text = new String(Base64.decode(re, Base64.NO_WRAP | Base64.NO_PADDING));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         if (mHandler != null) {
             Message msg = mHandler.obtainMessage();
             msg.what = MainActivity.MSG_RESULT;
-            msg.obj = indexs.toString() +", crc:"+crcResult + "\n" + text;
+            msg.obj = text;
             mHandler.sendMessage(msg);
         }
 
@@ -353,7 +392,153 @@ public class Decoder {
 
         return text;
 
-	}
+    }
+
+    private String showResult_SeqHamming(List<Integer> raw_indexs) {
+        List<Integer> indexs = new ArrayList<Integer>();
+        if (raw_indexs.size() < 2) {
+            return null;
+        }
+        // 还原相邻相同字符
+        while (raw_indexs.get(0) == CodeBook.DUPLICATE_INDEX_2 || raw_indexs.get(0) == CodeBook.DUPLICATE_INDEX_1) {
+            raw_indexs.remove(0);
+        }
+        int temp = raw_indexs.size();
+        for (int i=raw_indexs.size()-1; i>=0; i--) {
+            if (raw_indexs.get(i) == CodeBook.DUPLICATE_INDEX_1 || raw_indexs.get(i) == CodeBook.DUPLICATE_INDEX_2) {
+                if (temp >= i) {
+                    temp = i -1;
+                }
+                while(temp>0 && (raw_indexs.get(temp) == CodeBook.DUPLICATE_INDEX_1 || raw_indexs.get(temp) == CodeBook.DUPLICATE_INDEX_2)) {
+                    temp --;
+                }
+                if (temp < 0) temp = 0;
+                raw_indexs.set(i, raw_indexs.get(temp));
+            }
+        }
+        // 截取字符段进行译码
+        for (int i = 0; i < raw_indexs.size(); ++i) {
+            while (i < raw_indexs.size() && raw_indexs.get(i) == CodeBook.SEP_INDEX) {
+                i++;
+            }
+            int j = i;
+            while (j < raw_indexs.size() && raw_indexs.get(j) != CodeBook.SEP_INDEX) {
+                j++;
+            }
+            if (j > i) {
+                List<Integer> sublist = new ArrayList<>(raw_indexs.subList(i, j));
+                int[] corrected_units = correct(sublist);
+                for (int k = 0; k < 4; ++k) {
+                    indexs.add(corrected_units[k]);
+                }
+            }
+            i = j;
+        }
+        StringBuilder mTextBuilder = new StringBuilder();
+        for(int i=0; i<indexs.size(); i+=2) {
+            char c = Utils.indexs2Char(indexs.get(i), indexs.get(i+1));
+            mTextBuilder.append(c);
+        }
+        String re = mTextBuilder.toString();
+        if(re.endsWith("0")) {
+            re = re.replaceAll("0+$", "");
+        } else if (re.endsWith("1")) {
+            re = re.replaceAll("1+$", "");
+        }
+        String text = null;
+        try {
+            text = new String(Base64.decode(re, Base64.NO_WRAP | Base64.NO_PADDING));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (mHandler != null) {
+            Message msg = mHandler.obtainMessage();
+            msg.what = MainActivity.MSG_RESULT;
+            msg.obj = text;
+            mHandler.sendMessage(msg);
+        }
+        Log.d(TAG, "showResult:" + re +" --> "+ text);
+        return text;
+    }
+
+    // 译码及纠错
+    private int[] correct(List<Integer> frag) {
+        Log.d(TAG, "correct: " + frag);
+        int[] indexs = new int[4];
+        if (frag.size() < 7) {
+            Log.d(TAG, "Loss of units");
+            if (frag.size() < 6) {
+                while (frag.size() < 7) {
+                    frag.add(0);
+                }
+                process_complete_pack(frag, indexs);
+            } else {
+                for (int i = 0; i <= 6; ++i) {
+                    frag.add(i, 0);
+                    int error_pos = process_complete_pack(frag, indexs);
+                    if (error_pos == -1 || error_pos == i) {
+                        Log.d(TAG, "correct success: " + error_pos + " = " + i);
+                        return indexs;
+                    }
+                    frag.remove(i);
+                }
+            }
+        } else if (frag.size() > 7) {
+            Log.d(TAG, "Redundant of units");
+            if (frag.size() > 8) {
+                frag = frag.subList(0, 7);
+                process_complete_pack(frag, indexs);
+            } else {
+                for (int i = 0; i < 8; ++i) {
+                    int tmp = frag.get(i);
+                    frag.remove(i);
+                    int error_pos = process_complete_pack(frag, indexs);
+                    if (error_pos == -1) {
+                        Log.d(TAG, "correct success: " + error_pos + " now i = " + i);
+                        return indexs;
+                    }
+                    frag.add(i, tmp);
+                }
+            }
+        }
+        else {
+            process_complete_pack(frag, indexs);
+        }
+        return indexs;
+    }
+
+    private int process_complete_pack(List<Integer> _frag, int[] indexs) {
+        Log.d(TAG, "process: " + _frag);
+        List<Integer> frag = new ArrayList<Integer>(_frag);
+        int pos = 0;
+        int chk1 = (frag.get(0) + frag.get(2) + frag.get(4) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int chk2 = (frag.get(1) + frag.get(2) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int chk3 = (frag.get(3) + frag.get(4) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int offset = 0;
+        if (chk1 != 0) {
+            pos += 1;
+            offset = chk1;
+        }
+        if (chk2 != 0) {
+            pos += 2;
+            offset = chk2;
+        }
+        if (chk3 != 0) {
+            pos += 4;
+            offset = chk3;
+        }
+        pos -= 1;
+        if (pos != -1) {
+            int error_value = frag.get(pos);
+            frag.set(pos, (error_value + CodeBook.CODE_BOOK_LENGTH_CONTENT - offset) % CodeBook.CODE_BOOK_LENGTH_CONTENT);
+        }
+        Log.d(TAG, "processed: " + frag + "corrected: " + pos);
+        indexs[0] = frag.get(2);
+        indexs[1] = frag.get(4);
+        indexs[2] = frag.get(5);
+        indexs[3] = frag.get(6);
+        return pos;
+    }
 
     private String showResult_74hamming(List<Integer> codeIndexs) throws UnsupportedEncodingException {
         byte [] bytes = new byte[codeIndexs.size()];
@@ -371,7 +556,7 @@ public class Decoder {
         if (mHandler != null) {
             Message msg = mHandler.obtainMessage();
             msg.what = MainActivity.MSG_RESULT;
-            msg.obj = debugQueue.toString() + "\n" + text;
+            msg.obj = text;
             mHandler.sendMessage(msg);
         }
 

@@ -14,33 +14,51 @@ import android.view.View;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.webkit.WebViewClient;
 
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class MainActivity extends AppCompatActivity {
 
 	public static final int MSG_RESULT = 1;
 	public static final int MSG_CURRENT_FREQ = 2;
-
+	public static int BASE_FREQ;
+	public static int FREQ_DISTANCE;
+	public static int METHOD;
 	private EditText inputHz;
+	private EditText BaseFreq;
+	private EditText FreqDistance;
 	private int[] cc = {0, 262, 294, 330, 349, 392, 440, 494};
 
 	private TextView recordResult;
+	private TextView Message;
 	private TextView currentFreq;
 	private Record record;
-
+	private RadioGroup encodeMethod;
+	private RadioButton method1;
+	private RadioButton method2;
+	private RadioButton method3;
 	private Handler mHandler;
 
 	private Button btRecord;
@@ -53,8 +71,15 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		inputHz = this.findViewById(R.id.input_hz);
+		BaseFreq = this.findViewById(R.id.baseFreq);
+		FreqDistance = this.findViewById(R.id.freqDistance);
 		recordResult = this.findViewById(R.id.record_result);
+		Message = this.findViewById(R.id.message);
 		currentFreq = this.findViewById(R.id.text_current_freq);
+		encodeMethod = this.findViewById(R.id.method);
+		method1 = this.findViewById(R.id.encoding1);
+		method2 = this.findViewById(R.id.encoding2);
+		method3 = this.findViewById(R.id.encoding3);
 
 		mHandler = new Handler() {
 			@Override
@@ -120,6 +145,36 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 
+		findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				String encode_method = "";
+				if(method1.isChecked()) {
+					encode_method = "Raw";
+					METHOD = 1;
+				}
+				else if(method2.isChecked()) {
+					encode_method = "74Hamming";
+					METHOD = 2;
+				}
+				else if(method3.isChecked()) {
+					encode_method = "SeqHamming";
+					METHOD =3;
+				}
+				Message.setText("");
+				BASE_FREQ = Integer.parseInt(BaseFreq.getText().toString());
+
+				FREQ_DISTANCE = Integer.parseInt(FreqDistance.getText().toString());
+
+				Message.append("The base frequency is "+BaseFreq.getText().toString()+" Hz.\n");
+				Message.append("The frequency distance is "+FreqDistance.getText().toString() + " Hz.\n");
+				Message.append("Current encoding policy is "+encode_method+".");
+
+			}
+		});
+
+
+
 		btRecord = this.findViewById(R.id.bt_record);
 		btRecord.requestFocus();
 		btRecord.setOnClickListener(new View.OnClickListener() {
@@ -141,7 +196,6 @@ public class MainActivity extends AppCompatActivity {
 						}
 					}).start();
 
-					// String name = "http://www.baidu.com/";
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
@@ -151,10 +205,9 @@ public class MainActivity extends AppCompatActivity {
 									String name = url_queue.poll();
 									Runnable networkTask = () -> {
 										try{
-											HttpGet httpRequest = new HttpGet(name);
-											HttpClient httpclient = new DefaultHttpClient();
-											HttpResponse response = httpclient.execute(httpRequest);
-											if (response.getStatusLine().getStatusCode() == 200) {
+											URL url = new URL(name);
+											HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+											if (conn.getResponseCode() == 200) {
 												Intent intent = new Intent(MainActivity.this,webpage.class);
 												intent.putExtra("context", name);
 												startActivity(intent);
@@ -168,26 +221,28 @@ public class MainActivity extends AppCompatActivity {
 							}
 						}
 					}).start();
-
 				}
-
-
 			}
 		});
 
-
-
-
 	}
+
+
 
 	private void testBase64() throws UnsupportedEncodingException {
 		String test = inputHz.getText().toString();
 		String str = Base64.encodeToString(test.getBytes(), Base64.NO_WRAP | Base64.NO_PADDING);
-		List<Integer> codes = Encoder.convertTextToCode_74hamming(str);
+		List<Integer> codes = Encoder.convertTextToCodes(str);;
+		if (METHOD == 2)
+			codes = Encoder.convertTextToCode_74hamming(str);
+		if (METHOD == 3)
+			codes = Encoder.convertTextToCode_SeqHamming(str);
 
 		Log.d("Encode", "encodeArray:" + codes);
 		PCMPlayer.getInstance().start(codes, 50);
 	}
+
+
 
 	private void testCodes() {
 		List<Integer> codes = new ArrayList<>();

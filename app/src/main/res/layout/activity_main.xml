@@ -13,11 +13,96 @@
 		android:layout_height="wrap_content"
 		android:text=""/>
 
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="50dp"
+		android:layout_marginTop="12dp"
+		android:orientation="horizontal">
+
+		<TextView
+			android:id="@+id/textView"
+			android:layout_width="80dp"
+			android:layout_height="match_parent"
+			android:layout_marginStart="12dp"
+			android:layout_marginLeft="12dp"
+			android:text="Base Freq:" />
+
+		<EditText
+			android:id="@+id/baseFreq"
+			android:layout_width="90dp"
+			android:layout_height="wrap_content"
+			android:ems="10"
+			android:inputType="number" />
+
+		<TextView
+			android:id="@+id/textView2"
+			android:layout_width="90dp"
+			android:layout_height="match_parent"
+			android:layout_marginStart="12dp"
+			android:layout_marginLeft="12dp"
+			android:text="Freq Distance:" />
+
+		<EditText
+			android:id="@+id/freqDistance"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginEnd="12dp"
+			android:layout_marginRight="12dp"
+			android:ems="10"
+			android:inputType="number" />
+	</LinearLayout>
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="100dp"
+		android:orientation="horizontal">
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:layout_marginStart="12dp"
+			android:layout_marginLeft="12dp"
+			android:layout_weight="1"
+			android:text="Encoding method:" />
+
+		<LinearLayout
+			android:layout_width="250dp"
+			android:layout_height="match_parent"
+			android:orientation="vertical">
+
+			<RadioGroup
+				android:id="@+id/method"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent">
+
+				<RadioButton
+					android:id="@+id/encoding1"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:text="@string/encoding1" />
+
+				<RadioButton
+					android:id="@+id/encoding2"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:text="@string/encoding2" />
+
+				<RadioButton
+					android:id="@+id/encoding3"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:text="@string/encoding3" />
+			</RadioGroup>
+
+		</LinearLayout>
+
+	</LinearLayout>
+
 	<Button
 		android:id="@+id/bt_send"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:text="@string/send"/>
+		android:text="@string/send" />
 
 	<Button
 		android:id="@+id/bt_play"
@@ -33,10 +118,16 @@
 		android:layout_marginTop="12dp"
 		android:text="@string/record"/>
 
+	<TextView
+		android:id="@+id/message"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content" />
+
 	<LinearLayout
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:orientation="horizontal">
+
 		<TextView
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
@@ -51,12 +142,13 @@
 	<ScrollView
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content">
+
 		<TextView
 			android:id="@+id/record_result"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:padding="12dp"
-			android:text=""/>
+			android:text="" />
 	</ScrollView>
 
 
