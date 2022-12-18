@@ -1,8 +1,11 @@
 <resources>
-	<string name="app_name">SoundCommunication</string>
+	<string name="app_name">Sonare</string>
 
-	<string name="play">播放指定频率的声音</string>
+	<string name="play">确认设置</string>
 	<string name="send">通过声音发送数据</string>
 	<string name="record">录音</string>
 	<string name="recording">录音中……</string>
+	<string name="encoding1">Raw</string>
+	<string name="encoding2">74Hamming</string>
+	<string name="encoding3">SeqHamming</string>
 </resources>

@@ -3,6 +3,7 @@ package xwh.sound;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 
 import java.util.List;
 
@@ -16,8 +17,8 @@ public class PCMPlayer {
 	public final static int DEFAULT_SAMPLE_RATE = 44100;
 
 	private AudioTrack mAudioTrack;
-
 	private static PCMPlayer instance;
+
 	public static PCMPlayer getInstance() {
 		if (instance == null) {
 			instance = new PCMPlayer();
@@ -29,7 +30,6 @@ public class PCMPlayer {
 		int  minBufSize = AudioTrack.getMinBufferSize(DEFAULT_SAMPLE_RATE,
 				AudioFormat.CHANNEL_OUT_MONO,
 				AudioFormat.ENCODING_PCM_16BIT);
-
 		mAudioTrack=new AudioTrack(AudioManager.STREAM_MUSIC,
 				DEFAULT_SAMPLE_RATE,
 				AudioFormat.CHANNEL_OUT_MONO, // CHANNEL_CONFIGURATION_MONO,
@@ -50,7 +50,6 @@ public class PCMPlayer {
 		if(freq % 2 == 1) { // 偶数(奇数会有噪音，暂时没找到原因)
 			freq += 1;
 		}
-
 		for (int i = 0; i < length; i+=2) {
 			int index = i+start;
 			if (freq == 0) {
@@ -74,23 +73,18 @@ public class PCMPlayer {
 		if (isPlaying()) {
 			return;
 		}
-
 		int length = DEFAULT_SAMPLE_RATE * during / 1000 * 2;
-
 		//生成正弦波
 		byte[] wave =  new byte[length];
-
 		if(hz>0){
 			if (mAudioTrack == null) {
 				init();
 			}
 			mAudioTrack.play();
-
 			sin(wave, 0, hz, length);
 		}else{
 			sin(wave, 0, 0, length);
 		}
-
 		mAudioTrack.write(wave, 0, length);
 	}
 
@@ -104,29 +98,24 @@ public class PCMPlayer {
 		if (isPlaying()) {
 			return;
 		}
-
 		if (mAudioTrack == null) {
 			init();
 		}
 		mAudioTrack.play();
-
 		int lengthItem = DEFAULT_SAMPLE_RATE  * during / 1000 * 2;
-
 		byte[] waveAll =  new byte[lengthItem * codeIndexs.size()];
-
 		for(int i=0; i<codeIndexs.size(); i++) {
 			int hz = CodeBook.encode(codeIndexs.get(i));
+			if (MainActivity.METHOD == 2)
+				hz = CodeBook.encode_74hamming(codeIndexs.get(i));
 			sin(waveAll, lengthItem * i, hz, lengthItem);   // 生成正弦波
 		}
-
 		mAudioTrack.write(waveAll, 0, waveAll.length);
 	}
-
 
 	public boolean isPlaying() {
 		return mAudioTrack!= null && (mAudioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING);
 	}
-
 
 	public void stop() {
 		if(mAudioTrack != null) {

@@ -1,6 +1,8 @@
 package xwh.sound;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -9,37 +11,75 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.webkit.WebViewClient;
 
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+import java.util.Queue;
+
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class MainActivity extends AppCompatActivity {
 
 	public static final int MSG_RESULT = 1;
 	public static final int MSG_CURRENT_FREQ = 2;
-
+	public static int BASE_FREQ;
+	public static int FREQ_DISTANCE;
+	public static int METHOD;
 	private EditText inputHz;
+	private EditText BaseFreq;
+	private EditText FreqDistance;
 	private int[] cc = {0, 262, 294, 330, 349, 392, 440, 494};
 
 	private TextView recordResult;
+	private TextView Message;
 	private TextView currentFreq;
 	private Record record;
-
+	private RadioGroup encodeMethod;
+	private RadioButton method1;
+	private RadioButton method2;
+	private RadioButton method3;
 	private Handler mHandler;
 
 	private Button btRecord;
 
+	private Queue<String> url_queue = new LinkedList();
+
+	@SuppressLint("SetJavaScriptEnabled")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		inputHz = this.findViewById(R.id.input_hz);
+		BaseFreq = this.findViewById(R.id.baseFreq);
+		FreqDistance = this.findViewById(R.id.freqDistance);
 		recordResult = this.findViewById(R.id.record_result);
+		Message = this.findViewById(R.id.message);
 		currentFreq = this.findViewById(R.id.text_current_freq);
+		encodeMethod = this.findViewById(R.id.method);
+		method1 = this.findViewById(R.id.encoding1);
+		method2 = this.findViewById(R.id.encoding2);
+		method3 = this.findViewById(R.id.encoding3);
 
 		mHandler = new Handler() {
 			@Override
@@ -47,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
 				String re = (String) msg.obj;
 				if (msg.what == MSG_RESULT) {
 					recordResult.append(re + "\n");
+					url_queue.add(re);
 				} else if (msg.what == MSG_CURRENT_FREQ) {
 					currentFreq.setText(re + "HZ");
 				}
@@ -82,7 +123,11 @@ public class MainActivity extends AppCompatActivity {
 
 						//PCMPlayer.start(CodeBook.freqsWave[0], 2000);
 
-						testBase64();
+						try {
+							testBase64();
+						} catch (UnsupportedEncodingException e) {
+							e.printStackTrace();
+						}
 
 						//testCodes();
 
@@ -100,6 +145,37 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 
+		findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				String encode_method = "";
+				if(method1.isChecked()) {
+					encode_method = "Raw";
+					METHOD = 1;
+				}
+				else if(method2.isChecked()) {
+					encode_method = "74Hamming";
+					METHOD = 2;
+				}
+				else if(method3.isChecked()) {
+					encode_method = "SeqHamming";
+					METHOD =3;
+				}
+				Message.setText("");
+				BASE_FREQ = Integer.parseInt(BaseFreq.getText().toString());
+				FREQ_DISTANCE = Integer.parseInt(FreqDistance.getText().toString());
+				for(int i=0; i<CodeBook.freqsWave.length; i++) {
+					CodeBook.freqsWave[i] = MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * i;
+				}
+				Message.append("The base frequency is "+BaseFreq.getText().toString()+" Hz.\n");
+				Message.append("The frequency distance is "+FreqDistance.getText().toString() + " Hz.\n");
+				Message.append("Current encoding policy is "+encode_method+".");
+
+			}
+		});
+
+
+
 		btRecord = this.findViewById(R.id.bt_record);
 		btRecord.requestFocus();
 		btRecord.setOnClickListener(new View.OnClickListener() {
@@ -113,47 +189,61 @@ public class MainActivity extends AppCompatActivity {
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
-							record.start();
+							try {
+								record.start();
+							} catch (UnsupportedEncodingException e) {
+								e.printStackTrace();
+							}
+						}
+					}).start();
+
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							boolean flag = true;
+							while(flag){
+								if (url_queue.size() > 0){
+									String name = url_queue.poll();
+									Runnable networkTask = () -> {
+										try{
+											URL url = new URL(name);
+											HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+											if (conn.getResponseCode() == 200) {
+												Intent intent = new Intent(MainActivity.this,webpage.class);
+												intent.putExtra("context", name);
+												startActivity(intent);
+											}
+										}catch(Exception e){
+											e.printStackTrace();
+										}
+									};
+									new Thread(networkTask).start();
+								}
+							}
 						}
 					}).start();
 				}
-
-
-			}
-		});
-
-		findViewById(R.id.bt_play).setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				// 播放声音在主线程会阻塞界面刷新，要放在子线程中
-				new Thread(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							int hz = Integer.parseInt(inputHz.getText().toString());
-							PCMPlayer.getInstance().start(hz, 2000);
-
-							PCMPlayer.getInstance().stop();
-						} catch (NumberFormatException e) {
-							Toast.makeText(MainActivity.this, "Please input frequency", Toast.LENGTH_SHORT).show();
-						}
-
-					}
-				}).start();
-
 			}
 		});
 
 	}
 
-	private void testBase64() {
+
+
+	private void testBase64() throws UnsupportedEncodingException {
 		String test = inputHz.getText().toString();
 		String str = Base64.encodeToString(test.getBytes(), Base64.NO_WRAP | Base64.NO_PADDING);
-		List<Integer> codes = Encoder.convertTextToCodes(str);
+		List<Integer> codes = Encoder.convertTextToCodes(str);;
+		if (METHOD == 2)
+			codes = Encoder.convertTextToCode_74hamming(str);
+		if (METHOD == 3)
+			codes = Encoder.convertTextToCode_SeqHamming(str);
 
 		Log.d("Encode", "encodeArray:" + codes);
 		PCMPlayer.getInstance().start(codes, 50);
 	}
+
+
 
 	private void testCodes() {
 		List<Integer> codes = new ArrayList<>();

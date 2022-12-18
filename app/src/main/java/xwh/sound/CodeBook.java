@@ -1,5 +1,5 @@
 package xwh.sound;
-
+import android.util.Log;
 /**
  * 编码字典表
  * 用声音频率来表达不同的字符，理想的做法是每个字符对应一段指定频率的声音。但是声音容易被干扰，只能采用划分大的频率段的方式进行编码。
@@ -13,25 +13,37 @@ package xwh.sound;
 
 public class CodeBook {
 
-	public static final int CODE_BOOK_LENGTH_CONTENT = 8;  // 内容编码长度 （0-7为内容）
-	public static final int DUPLICATE_INDEX_1 = CODE_BOOK_LENGTH_CONTENT; // 重复标记1
-	public static final int DUPLICATE_INDEX_2 = DUPLICATE_INDEX_1 +1; // 重复标记2
-	public static final int START_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
-	public static final int END_INDEX = START_INDEX + 1;   // 结束标记
+
+	public static int CODE_BOOK_LENGTH_CONTENT = 8;  // 内容编码长度 （0-7为内容）
+	public static int DUPLICATE_INDEX_1 = CODE_BOOK_LENGTH_CONTENT; // 重复标记1
+	public static int DUPLICATE_INDEX_2 = DUPLICATE_INDEX_1 +1; // 重复标记2
+	public static int END_INDEX = DUPLICATE_INDEX_2 + 1;   // 开始标记
+	public static int START_INDEX = END_INDEX + 1;   // 结束标记
+
+	public static int SEP_INDEX = START_INDEX + 1; // 分割符
+
+	//public static int freqDistance = MainActivity.FREQ_DISTANCE;  // 两个频率之间的间距
+	public static int START_INDEX_HAMMING = 4;
+	public static int END_INDEX_HAMMING = 6;
+	public static int DUPLICATE_INDEX_1_HAMMING = 5;
+	public static int DUPLICATE_INDEX_2_HAMMING = 7;
+	//public static int BASE_FREQ = MainActivity.BASE_FREQ;
+	//public static int START_FREQ_HAMMING = BASE_FREQ + freqDistance * START_INDEX_HAMMING;
+	//public static int END_FREQ_HAMMING = BASE_FREQ + freqDistance * END_INDEX_HAMMING;
+	//public static int DUP1_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_1_HAMMING;
+	//public static int DUP2_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_2_HAMMING;
+
 
 	/**
 	 * 两个book字典码来组成下面每个字符的编码
 	 */
 	public final static String CONTENT_CODE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";   // Base64编码
 
-
-	public static int[] freqsWave = new int[12];    // 将声音频率划分成12段，每一段表示一个字典码。
-
-	public static int freqDistance = 500;  // 两个频率之间的间距
+	public static int[] freqsWave = new int[13];    // 将声音频率划分成12段，每一段表示一个字典码。
 
 	static {
 		for(int i=0; i<freqsWave.length; i++) {
-			freqsWave[i] = 5000 + freqDistance * i;
+			freqsWave[i] = MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * i;
 		}
 	}
 
@@ -43,6 +55,41 @@ public class CodeBook {
 		return freq;
 	}
 
+	public static int encode_74hamming(int index) {
+		if (index == START_INDEX_HAMMING) {
+			return MainActivity.BASE_FREQ+MainActivity.FREQ_DISTANCE * START_INDEX_HAMMING;
+		}
+		if (index == END_INDEX_HAMMING) {
+			return MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * END_INDEX_HAMMING;
+		}
+		if (index == MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * DUPLICATE_INDEX_1_HAMMING) {
+			return MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * DUPLICATE_INDEX_1_HAMMING;
+		}
+		if (index == MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * DUPLICATE_INDEX_2_HAMMING) {
+			return MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * DUPLICATE_INDEX_2_HAMMING;
+		}
+		int freq_idx = _inv_gray(index, 2);
+		return freqsWave[index];
+	}
+
+	private static int _gray(int value, int bitNum) {
+		value = value & ((1<<bitNum) - 1);
+		int res = 0;
+		for (int i = bitNum-1; i >= 0; i--) {
+			res += (((value >> i) & 0x1) ^ ((value >> (i + 1)) & 0x1)) << i;
+		}
+		return res;
+	}
+
+	private static int _inv_gray(int value, int bitNum) {
+		value = value & ((1<<bitNum) - 1);
+		int res = value & (1<<(bitNum-1));
+		for (int i = bitNum - 2; i >= 0; i--) {
+			res += (((value >> i) & 0x1) ^ ((res >> (i + 1)) & 0x1)) << i;
+		}
+		//Log.i("_inv_gray", "before: " + value + " after: " + res);
+		return res;
+	}
 
 	/**
 	 * 从码库里面找到一个最相近的
@@ -52,7 +99,7 @@ public class CodeBook {
 	public static int decode(int fre) {
 		int index = -1;
 
-		if ( fre + freqDistance > freqsWave[0]) {   // 太小的不要
+		if ( fre + MainActivity.FREQ_DISTANCE > freqsWave[0]) {   // 太小的不要
 			int min = Integer.MAX_VALUE;
 			for(int i=0; i<freqsWave.length; i++) {
 				int distance = Math.abs(fre - freqsWave[i]);
@@ -62,6 +109,16 @@ public class CodeBook {
 				}
 			}
 		}
+		return index;
+	}
+
+	public static int decode_hamming(int fre) {
+		int index = decode(fre);
+		//if (index == -1 || index >= START_INDEX_HAMMING) {
+		//	return index;
+		//}
+		//index = _gray(index, 2);
+		if (index > DUPLICATE_INDEX_2_HAMMING) index = DUPLICATE_INDEX_2_HAMMING;
 		return index;
 	}
 }
