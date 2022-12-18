@@ -110,6 +110,7 @@ public class Decoder {
                     decodeFre_74hamming(currentFreq);
                 if (MainActivity.METHOD == 3)
                     decodeFre_SeqHamming(currentFreq);
+
                 stepCount = 0;
                 waveCount = 0;
             }
@@ -121,6 +122,7 @@ public class Decoder {
             msg.obj = freq + "";
             mHandler.sendMessage(msg);
             if (freq > MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * CodeBook.START_INDEX_HAMMING) {
+
                 //Log.i("Record", "fre:" + freq);
             }
         }
@@ -455,6 +457,152 @@ public class Decoder {
             Message msg = mHandler.obtainMessage();
             msg.what = MainActivity.MSG_RESULT;
             msg.obj = text;
+            mHandler.sendMessage(msg);
+        }
+        Log.d(TAG, "showResult:" + re +" --> "+ text);
+        return text;
+    }
+
+    // 译码及纠错
+    private int[] correct(List<Integer> frag) {
+        Log.d(TAG, "correct: " + frag);
+        int[] indexs = new int[4];
+        if (frag.size() < 7) {
+            Log.d(TAG, "Loss of units");
+            if (frag.size() < 6) {
+                while (frag.size() < 7) {
+                    frag.add(0);
+                }
+                process_complete_pack(frag, indexs);
+            } else {
+                for (int i = 0; i <= 6; ++i) {
+                    frag.add(i, 0);
+                    int error_pos = process_complete_pack(frag, indexs);
+                    if (error_pos == -1 || error_pos == i) {
+                        Log.d(TAG, "correct success: " + error_pos + " = " + i);
+                        return indexs;
+                    }
+                    frag.remove(i);
+                }
+            }
+        } else if (frag.size() > 7) {
+            Log.d(TAG, "Redundant of units");
+            if (frag.size() > 8) {
+                frag = frag.subList(0, 7);
+                process_complete_pack(frag, indexs);
+            } else {
+                for (int i = 0; i < 8; ++i) {
+                    int tmp = frag.get(i);
+                    frag.remove(i);
+                    int error_pos = process_complete_pack(frag, indexs);
+                    if (error_pos == -1) {
+                        Log.d(TAG, "correct success: " + error_pos + " now i = " + i);
+                        return indexs;
+                    }
+                    frag.add(i, tmp);
+                }
+            }
+        }
+        else {
+            process_complete_pack(frag, indexs);
+        }
+        return indexs;
+    }
+
+    private int process_complete_pack(List<Integer> _frag, int[] indexs) {
+        Log.d(TAG, "process: " + _frag);
+        List<Integer> frag = new ArrayList<Integer>(_frag);
+        int pos = 0;
+        int chk1 = (frag.get(0) + frag.get(2) + frag.get(4) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int chk2 = (frag.get(1) + frag.get(2) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int chk3 = (frag.get(3) + frag.get(4) + frag.get(5) + frag.get(6)) % CodeBook.CODE_BOOK_LENGTH_CONTENT;
+        int offset = 0;
+        if (chk1 != 0) {
+            pos += 1;
+            offset = chk1;
+        }
+        if (chk2 != 0) {
+            pos += 2;
+            offset = chk2;
+        }
+        if (chk3 != 0) {
+            pos += 4;
+            offset = chk3;
+        }
+        pos -= 1;
+        if (pos != -1) {
+            int error_value = frag.get(pos);
+            frag.set(pos, (error_value + CodeBook.CODE_BOOK_LENGTH_CONTENT - offset) % CodeBook.CODE_BOOK_LENGTH_CONTENT);
+        }
+        Log.d(TAG, "processed: " + frag + "corrected: " + pos);
+        indexs[0] = frag.get(2);
+        indexs[1] = frag.get(4);
+        indexs[2] = frag.get(5);
+        indexs[3] = frag.get(6);
+        return pos;
+    }
+
+    private String showResult_SeqHamming(List<Integer> raw_indexs) {
+        List<Integer> indexs = new ArrayList<Integer>();
+        if (raw_indexs.size() < 2) {
+            return null;
+        }
+        // 还原相邻相同字符
+        while (raw_indexs.get(0) == CodeBook.DUPLICATE_INDEX_2 || raw_indexs.get(0) == CodeBook.DUPLICATE_INDEX_1) {
+            raw_indexs.remove(0);
+        }
+        int temp = raw_indexs.size();
+        for (int i=raw_indexs.size()-1; i>=0; i--) {
+            if (raw_indexs.get(i) == CodeBook.DUPLICATE_INDEX_1 || raw_indexs.get(i) == CodeBook.DUPLICATE_INDEX_2) {
+                if (temp >= i) {
+                    temp = i -1;
+                }
+                while(temp>0 && (raw_indexs.get(temp) == CodeBook.DUPLICATE_INDEX_1 || raw_indexs.get(temp) == CodeBook.DUPLICATE_INDEX_2)) {
+                    temp --;
+                }
+                if (temp < 0) temp = 0;
+                raw_indexs.set(i, raw_indexs.get(temp));
+            }
+        }
+        // 截取字符段进行译码
+        for (int i = 0; i < raw_indexs.size(); ++i) {
+            while (i < raw_indexs.size() && raw_indexs.get(i) == CodeBook.SEP_INDEX) {
+                i++;
+            }
+            int j = i;
+            while (j < raw_indexs.size() && raw_indexs.get(j) != CodeBook.SEP_INDEX) {
+                j++;
+            }
+            if (j > i) {
+                List<Integer> sublist = new ArrayList<>(raw_indexs.subList(i, j));
+                int[] corrected_units = correct(sublist);
+                for (int k = 0; k < 4; ++k) {
+                    indexs.add(corrected_units[k]);
+                }
+            }
+            i = j;
+        }
+        StringBuilder mTextBuilder = new StringBuilder();
+        for(int i=0; i<indexs.size(); i+=2) {
+            char c = Utils.indexs2Char(indexs.get(i), indexs.get(i+1));
+            mTextBuilder.append(c);
+        }
+        String re = mTextBuilder.toString();
+        if(re.endsWith("0")) {
+            re = re.replaceAll("0+$", "");
+        } else if (re.endsWith("1")) {
+            re = re.replaceAll("1+$", "");
+        }
+        String text = null;
+        try {
+            text = new String(Base64.decode(re, Base64.NO_WRAP | Base64.NO_PADDING));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (mHandler != null) {
+            Message msg = mHandler.obtainMessage();
+            msg.what = MainActivity.MSG_RESULT;
+            msg.obj = indexs.toString() + "\n" + text;
             mHandler.sendMessage(msg);
         }
         Log.d(TAG, "showResult:" + re +" --> "+ text);
