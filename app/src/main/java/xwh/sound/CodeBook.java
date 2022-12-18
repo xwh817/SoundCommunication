@@ -13,6 +13,7 @@ import android.util.Log;
 
 public class CodeBook {
 
+
 	public static int CODE_BOOK_LENGTH_CONTENT = 8;  // 内容编码长度 （0-7为内容）
 	public static int DUPLICATE_INDEX_1 = CODE_BOOK_LENGTH_CONTENT; // 重复标记1
 	public static int DUPLICATE_INDEX_2 = DUPLICATE_INDEX_1 +1; // 重复标记2
@@ -31,6 +32,7 @@ public class CodeBook {
 	//public static int END_FREQ_HAMMING = BASE_FREQ + freqDistance * END_INDEX_HAMMING;
 	//public static int DUP1_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_1_HAMMING;
 	//public static int DUP2_FREQ_HAMMING = BASE_FREQ + freqDistance * DUPLICATE_INDEX_2_HAMMING;
+
 
 	/**
 	 * 两个book字典码来组成下面每个字符的编码
