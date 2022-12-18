@@ -1,5 +1,5 @@
 <resources>
-	<string name="app_name">SoundCommunication</string>
+	<string name="app_name">Sonare</string>
 
 	<string name="play">确认设置</string>
 	<string name="send">通过声音发送数据</string>

@@ -163,9 +163,10 @@ public class MainActivity extends AppCompatActivity {
 				}
 				Message.setText("");
 				BASE_FREQ = Integer.parseInt(BaseFreq.getText().toString());
-
 				FREQ_DISTANCE = Integer.parseInt(FreqDistance.getText().toString());
-
+				for(int i=0; i<CodeBook.freqsWave.length; i++) {
+					CodeBook.freqsWave[i] = MainActivity.BASE_FREQ + MainActivity.FREQ_DISTANCE * i;
+				}
 				Message.append("The base frequency is "+BaseFreq.getText().toString()+" Hz.\n");
 				Message.append("The frequency distance is "+FreqDistance.getText().toString() + " Hz.\n");
 				Message.append("Current encoding policy is "+encode_method+".");
